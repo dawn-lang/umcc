@@ -244,6 +244,7 @@ impl Context {
                             } else {
                                 let e1 = self.unquote_value(vs.0.pop().unwrap())?;
                                 *eii = Box::new(e1);
+                                // TODO: fixup shadowed nested StackId's
                                 Ok(())
                             }
                         }
@@ -259,6 +260,7 @@ impl Context {
                                 }
                                 _ => {
                                     *eii = Box::new(new_e.clone());
+                                    // TODO: fixup shadowed nested StackId's
                                     Ok(())
                                 }
                             }
