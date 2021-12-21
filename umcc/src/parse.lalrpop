@@ -1,0 +1,103 @@
+// Copyright (c) 2021 Scott J Maddox
+//
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+use crate::core::*;
+
+grammar(interner: &mut Interner);
+
+pub Expr: Expr = {
+    <mut es:SingleExpr*> => {
+        if es.len() == 1 {
+            es.drain(..).next().unwrap()
+        } else {
+            Expr::Compose(es)
+        }
+    },
+}
+
+SingleExpr: Expr = {
+    PUSH => Expr::Intrinsic(Intrinsic::Push),
+    POP => Expr::Intrinsic(Intrinsic::Pop),
+    CLONE => Expr::Intrinsic(Intrinsic::Clone),
+    DROP => Expr::Intrinsic(Intrinsic::Drop),
+    QUOTE => Expr::Intrinsic(Intrinsic::Quote),
+    COMPOSE => Expr::Intrinsic(Intrinsic::Compose),
+    APPLY => Expr::Intrinsic(Intrinsic::Apply),
+    IDENT => Expr::Call(TermSymbol(interner.get_or_intern(<>))),
+    LBRACKET <Expr> RBRACKET => Expr::Quote(Box::new(<>)),
+    LPAREN <s:StackId> PIPE <e:Expr> RPAREN => {
+        let e = Expr::StackContext(s, Box::new(e));
+        // TODO: fixup shadowed nested StackId's
+        e
+    },
+}
+
+pub(crate) TermSymbol: TermSymbol = {
+    IDENT => TermSymbol(interner.get_or_intern(<>))
+}
+
+pub(crate) StackSymbol: StackSymbol = {
+    IDENT => StackSymbol(interner.get_or_intern(<>))
+}
+
+pub(crate) StackId: StackId = {
+    StackSymbol => StackId(<>, 0)
+}
+
+pub TermDef: TermDef = {
+    TERM <t:TermSymbol> EQUAL <e:Expr> SEMICOLON => TermDef(t, e),
+}
+
+pub Value: Value = {
+    IDENT => Value::Call(TermSymbol(interner.get_or_intern(<>))),
+    LBRACKET <Expr> RBRACKET => Value::Quote(Box::new(<>)),
+}
+
+ValueStack: (StackId, ValueStack) = {
+    BRA <s:StackId> PIPE <vs:Value*> KET =>(s, ValueStack(vs)),
+}
+
+pub ValueMultistack: ValueMultistack = {
+    <mut vss:ValueStack*> => ValueMultistack(vss.drain(..).collect()),
+}
+
+pub(crate) SmallStepAssertion: (ValueMultistack, Expr, ValueMultistack, Expr) = {
+    <ivms: ValueMultistack> <ie: Expr> LONG_RARROW <ovms: ValueMultistack> <oe: Expr> => {
+        (ivms, ie, ovms, oe)
+    }
+}
+
+pub(crate) BigStepAssertion: (ValueMultistack, Expr, ValueMultistack, Expr) = {
+    <ivms: ValueMultistack> <ie: Expr> DDARROW <ovms: ValueMultistack> <oe: Expr> => {
+        (ivms, ie, ovms, oe)
+    }
+}
+
+match {
+    r"\s*" => { }, // skip whitespace
+    r"--[^\n\r]*[\n\r]*" => { }, // Skip `--` comments
+    r"\|" => PIPE,
+    r"\(" => LPAREN,
+    r"\)" => RPAREN,
+    r"\[" => LBRACKET,
+    r"\]" => RBRACKET,
+    r"push" => PUSH,
+    r"pop" => POP,
+    r"clone" => CLONE,
+    r"drop" => DROP,
+    r"quote" => QUOTE,
+    r"compose" => COMPOSE,
+    r"apply" => APPLY,
+    r"term" => TERM,
+    r"=" => EQUAL,
+    r";" => SEMICOLON,
+    r"⟨" => BRA,
+    r"⟩" => KET,
+    r"⟶" => LONG_RARROW,
+    r"⇓" => DDARROW,
+} else {
+    r"[_a-zA-Z][_a-zA-Z0-9]*" => IDENT,
+}
