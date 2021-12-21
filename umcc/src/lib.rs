@@ -14,3 +14,5 @@ use lalrpop_util::lalrpop_mod;
 lalrpop_mod!(pub parse);
 #[cfg(test)]
 mod test_parse;
+
+mod builtin;
