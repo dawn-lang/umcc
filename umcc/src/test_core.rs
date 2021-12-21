@@ -13,18 +13,18 @@ use crate::parse::*;
 fn test_define_term() {
     let mut ctx = Context::default();
     let sym = TermSymbol(ctx.interner.get_or_intern_static("foo"));
-    let fn_def1 = TermDefParser::new()
+    let term_def1 = TermDefParser::new()
         .parse(&mut ctx.interner, "term foo = e1;")
         .unwrap();
     let e1 = ExprParser::new().parse(&mut ctx.interner, "e1").unwrap();
-    let fn_def2 = TermDefParser::new()
+    let term_def2 = TermDefParser::new()
         .parse(&mut ctx.interner, "term foo = e2;")
         .unwrap();
     let e2 = ExprParser::new().parse(&mut ctx.interner, "e2").unwrap();
     assert_eq!(ctx.terms.get(&sym), None);
-    assert_eq!(ctx.define_term(fn_def1), None);
+    assert_eq!(ctx.define_term(term_def1), None);
     assert_eq!(ctx.terms.get(&sym), Some(&e1));
-    assert_eq!(ctx.define_term(fn_def2), Some(TermDef(sym, e1)));
+    assert_eq!(ctx.define_term(term_def2), Some(TermDef(sym, e1)));
     assert_eq!(ctx.terms.get(&sym), Some(&e2));
 }
 
