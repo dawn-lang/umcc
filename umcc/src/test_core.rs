@@ -4,6 +4,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+use crate::builtin::TERM_DEF_SRCS;
 use crate::core::*;
 use crate::display::*;
 use crate::parse::*;
@@ -63,6 +64,57 @@ fn test_small_step() {
             ),
             "Failed on {}",
             case
+        );
+    }
+}
+
+#[test]
+fn test_compress() {
+    let cases = [
+        ("⟨s|[swap drop]⟩", "⟨s|true⟩", true),
+        ("⟨s|[drop]⟩", "⟨s|n0⟩", true),
+        (
+            "⟨s|[[clone] n0 apply [compose] n0 apply apply]⟩",
+            "⟨s|n1⟩",
+            true,
+        ),
+        (
+            "⟨s|[[clone] n1 apply [compose] n1 apply apply]⟩",
+            "⟨s|n2⟩",
+            true,
+        ),
+        (
+            "⟨s|[[clone] n2 apply [compose] n2 apply apply]⟩",
+            "⟨s|n3⟩",
+            true,
+        ),
+        (
+            "⟨s|[[clone] n3 apply [compose] n3 apply apply]⟩",
+            "⟨s|n4⟩",
+            true,
+        ),
+    ];
+    for (input_src, expected_src, expected_result) in cases {
+        let mut ctx = Context::default();
+        for term_def_src in TERM_DEF_SRCS.iter() {
+            let term_def = TermDefParser::new()
+                .parse(&mut ctx.interner, term_def_src)
+                .unwrap();
+            assert_eq!(ctx.define_term(term_def), None);
+        }
+        let mut input = ValueMultistackParser::new()
+            .parse(&mut ctx.interner, input_src)
+            .unwrap();
+        let expected = ValueMultistackParser::new()
+            .parse(&mut ctx.interner, expected_src)
+            .unwrap();
+        let result = ctx.compress(&mut input);
+        assert_eq!(
+            (input.resolve(&ctx.interner), result),
+            (expected.resolve(&ctx.interner), expected_result),
+            "Failed on ({}, {})",
+            input_src,
+            expected_src
         );
     }
 }

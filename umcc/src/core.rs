@@ -324,6 +324,25 @@ impl Context {
             _ => Err(EvalError::MissingStackContexts(e.clone())),
         }
     }
+
+    pub fn compress(&mut self, vms: &mut ValueMultistack) -> bool {
+        let mut compressed = false;
+        for (_s, vs) in vms.0.iter_mut() {
+            for v in vs.0.iter_mut() {
+                match v {
+                    Value::Call(_) => {}
+                    Value::Quote(e) => {
+                        // TODO: we shouldn't have to clone this expr in order to hash it
+                        if let Some(sym) = self.exprs.get(&Expr::Quote((*e).clone())) {
+                            *v = Value::Call(*sym);
+                            compressed = true;
+                        }
+                    }
+                }
+            }
+        }
+        compressed
+    }
 }
 
 //////////////////////
