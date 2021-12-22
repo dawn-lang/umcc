@@ -249,18 +249,23 @@ impl fmt::Display for ResolvedValue {
     }
 }
 
-impl fmt::Display for ResolvedValueStack {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        "⟨".fmt(f)?;
-        if let Some(v) = self.0.first() {
-            v.fmt(f)?;
-        }
-        for v in self.0.iter().skip(1) {
-            " ".fmt(f)?;
-            v.fmt(f)?;
-        }
-        "⟩".fmt(f)
+fn display_resolved_value_stack(
+    s: &ResolvedStackId,
+    vs: &ResolvedValueStack,
+    f: &mut fmt::Formatter,
+) -> fmt::Result {
+    use std::fmt::Display;
+    "⟨".fmt(f)?;
+    s.fmt(f)?;
+    "|".fmt(f)?;
+    if let Some(v) = vs.0.first() {
+        v.fmt(f)?;
     }
+    for v in vs.0.iter().skip(1) {
+        " ".fmt(f)?;
+        v.fmt(f)?;
+    }
+    "⟩".fmt(f)
 }
 
 impl fmt::Display for ResolvedValueMultistack {
@@ -268,11 +273,13 @@ impl fmt::Display for ResolvedValueMultistack {
         let mut sids: Vec<ResolvedStackId> = self.0.keys().cloned().collect();
         sids.sort_unstable();
         if let Some(sid) = sids.first() {
-            write!(f, "{}", self.0.get(sid).unwrap())?;
+            let vs = self.0.get(sid).unwrap();
+            display_resolved_value_stack(sid, vs, f)?;
         }
         for sid in sids.iter().skip(1) {
             " ".fmt(f)?;
-            sid.fmt(f)?;
+            let vs = self.0.get(sid).unwrap();
+            display_resolved_value_stack(sid, vs, f)?;
         }
         Ok(())
     }
