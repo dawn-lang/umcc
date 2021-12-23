@@ -454,7 +454,8 @@ impl Context {
 pub struct TermDef(pub TermSymbol, pub Expr);
 
 impl Context {
-    pub fn define_term(&mut self, fn_def: TermDef) -> Option<TermDef> {
+    pub fn define_term(&mut self, mut fn_def: TermDef) -> Option<TermDef> {
+        fn_def.1.deshadow();
         let result = self.terms.remove(&fn_def.0).map(|e| TermDef(fn_def.0, e));
         self.terms.insert(fn_def.0, fn_def.1.clone());
         self.exprs.insert(fn_def.1, fn_def.0);
