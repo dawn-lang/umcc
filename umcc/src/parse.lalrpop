@@ -28,11 +28,7 @@ SingleExpr: Expr = {
     apply => Expr::Intrinsic(Intrinsic::Apply),
     IDENT => Expr::Call(TermSymbol(interner.get_or_intern(<>))),
     LBRACKET <Expr> RBRACKET => Expr::Quote(Box::new(<>)),
-    LPAREN <s:StackId> PIPE <e:Expr> RPAREN => {
-        let e = Expr::StackContext(s, Box::new(e));
-        // TODO: fixup shadowed nested StackId's
-        e
-    },
+    LPAREN <s:StackId> PIPE <e:Expr> RPAREN => Expr::StackContext(s, Box::new(e)),
 }
 
 pub(crate) TermSymbol: TermSymbol = {

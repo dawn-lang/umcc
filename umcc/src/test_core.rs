@@ -29,6 +29,20 @@ fn test_define_term() {
 }
 
 #[test]
+fn test_define_term_with_shadowing() {
+    let mut ctx = Context::default();
+    let sym = TermSymbol(ctx.interner.get_or_intern_static("foo"));
+    let term_def1 = TermDefParser::new()
+        .parse(&mut ctx.interner, "term foo = (s|(s|e1));")
+        .unwrap();
+    let mut e1 = ExprParser::new().parse(&mut ctx.interner, "(s|(s|e1))").unwrap();
+    e1.deshadow();
+    assert_eq!(ctx.terms.get(&sym), None);
+    assert_eq!(ctx.define_term(term_def1), None);
+    assert_eq!(ctx.terms.get(&sym), Some(&e1));
+}
+
+#[test]
 fn test_small_step() {
     let cases = [
         "⟨s1|v1⟩⟨s2|v2⟩ (s1|(s2|push)) ⟶IntrPush ⟨s2|v2 v1⟩ (s1|(s2|))",
@@ -109,6 +123,52 @@ fn test_big_step() {
         "⟨s|[e] n2 n1⟩ (sp|(s|mul apply)) ⇓ (sp|(s|e e))",
         "⟨s|[e] n2 n2⟩ (sp|(s|mul apply)) ⇓ (sp|(s|e e e e))",
         "⟨s|[clone apply]⟩ (sp|(s|clone apply)) ⇓ ⟨s|[clone apply]⟩ (sp|(s|clone apply))",
+    ];
+    let mut ctx = Context::default();
+    for term_def_src in TERM_DEF_SRCS.iter() {
+        let term_def = TermDefParser::new()
+            .parse(&mut ctx.interner, term_def_src)
+            .unwrap();
+        assert_eq!(ctx.define_term(term_def), None);
+    }
+    for case in cases {
+        println!("\nCase: {}", case);
+        let (mut vms1, mut e1, vms2, e2) = BigStepAssertionParser::new()
+            .parse(&mut ctx.interner, case)
+            .unwrap();
+        println!(
+            "{} {}",
+            vms1.resolve(&ctx.interner),
+            e1.resolve(&ctx.interner)
+        );
+        'eval: for step in 1..=MAX_SMALL_STEPS {
+            let rule = match ctx.small_step(&mut vms1, &mut e1) {
+                Ok(rule) => rule,
+                Err(err) => {
+                    println!("Error: {:?}", err.resolve(&ctx.interner));
+                    panic!("Failed on {}", case);
+                }
+            };
+            println!(
+                "⟶{:?} {} {}",
+                rule,
+                vms1.resolve(&ctx.interner),
+                e1.resolve(&ctx.interner)
+            );
+            if vms1 == vms2 && e1 == e2 {
+                break 'eval;
+            } else if step == MAX_SMALL_STEPS {
+                panic!("Reached MAX_SMALL_STEPS on {}", case);
+            }
+        }
+    }
+}
+
+#[test]
+fn test_big_step_with_deshadowing() {
+    const MAX_SMALL_STEPS: usize = 2000;
+    let cases = [
+        "⟨s2|v1 v2⟩ (s1|(s2|swap)) ⇓ ⟨s2|v2 v1⟩",
     ];
     let mut ctx = Context::default();
     for term_def_src in TERM_DEF_SRCS.iter() {

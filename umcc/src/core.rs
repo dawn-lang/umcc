@@ -63,6 +63,12 @@ impl Default for Expr {
     }
 }
 
+impl Expr {
+    pub(crate) fn deshadow(&mut self) {
+        todo!()
+    }
+}
+
 ///////////////
 // Semantics //
 ///////////////
