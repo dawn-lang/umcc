@@ -65,7 +65,32 @@ impl Default for Expr {
 
 impl Expr {
     pub(crate) fn deshadow(&mut self) {
-        todo!()
+        self._deshadow(&mut Map::default());
+    }
+
+    fn _deshadow(&mut self, max_stack_symbol_index: &mut Map<StackSymbol, u32>) {
+        match self {
+            Expr::Intrinsic(_) => {}
+            Expr::Call(_) => {}
+            Expr::Quote(e) => e._deshadow(max_stack_symbol_index),
+            Expr::Compose(es) => {
+                for e in es {
+                    e._deshadow(max_stack_symbol_index);
+                }
+            }
+            Expr::StackContext(s, e) => {
+                if max_stack_symbol_index.contains_key(&s.0) {
+                    s.1 += 1;
+                    *max_stack_symbol_index.get_mut(&s.0).unwrap() += 1;
+                    e._deshadow(max_stack_symbol_index);
+                    *max_stack_symbol_index.get_mut(&s.0).unwrap() -= 1;
+                } else {
+                    max_stack_symbol_index.insert(s.0, 0);
+                    e._deshadow(max_stack_symbol_index);
+                    max_stack_symbol_index.remove(&s.0);
+                }
+            }
+        }
     }
 }
 
