@@ -79,10 +79,34 @@ pub struct ValueStack(pub(crate) Vec<Value>);
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct ValueMultistack(pub(crate) Map<StackId, ValueStack>);
 
+impl ValueMultistack {
+    fn remove_empty_stacks(&mut self) {
+        self.0.retain(|_s, vs| !vs.0.is_empty());
+    }
+}
+
 pub struct Context {
     pub(crate) interner: Interner,
     pub(crate) terms: Map<TermSymbol, Expr>,
     pub(crate) exprs: Map<Expr, TermSymbol>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SmallStepRule {
+    Empty,
+    IntrPush,
+    IntrPop,
+    IntrClone,
+    IntrDrop,
+    IntrQuote,
+    IntrCompose,
+    IntrApply,
+    LitCallQuote,
+    LitCall,
+    LitQuote,
+    StkCtxDistr,
+    StkCtxRedund,
+    StkCtxEmpty,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -120,207 +144,239 @@ impl Context {
         }
     }
 
-    pub fn small_step(&mut self, vms: &mut ValueMultistack, e: &mut Expr) -> Result<(), EvalError> {
+    pub fn small_step(
+        &mut self,
+        vms: &mut ValueMultistack,
+        e: &mut Expr,
+    ) -> Result<SmallStepRule, EvalError> {
         match e {
-            Expr::StackContext(si, ei) => match &mut (**ei) {
-                Expr::StackContext(sii, eii) => match &mut (**eii) {
-                    Expr::Intrinsic(intr) => match intr {
-                        Intrinsic::Push => {
-                            let vsi = vms.0.entry(*si).or_default();
-                            if vsi.0.len() < 1 {
-                                Err(EvalError::TooFewValues {
-                                    available: vsi.0.len(),
-                                    expected: 1,
-                                })
-                            } else {
-                                let v = vsi.0.pop().unwrap();
-                                let vsii = vms.0.entry(*sii).or_default();
-                                vsii.0.push(v);
-                                *eii = Box::new(Expr::default());
-                                Ok(())
-                            }
-                        }
-                        Intrinsic::Pop => {
-                            let vsii = vms.0.entry(*sii).or_default();
-                            if vsii.0.len() < 1 {
-                                Err(EvalError::TooFewValues {
-                                    available: vsii.0.len(),
-                                    expected: 1,
-                                })
-                            } else {
-                                let v = vsii.0.pop().unwrap();
-                                let vsi = vms.0.entry(*si).or_default();
-                                vsi.0.push(v);
-                                *eii = Box::new(Expr::default());
-                                Ok(())
-                            }
-                        }
-                        Intrinsic::Clone => {
-                            let vs = vms.0.entry(*sii).or_default();
-                            if vs.0.len() < 1 {
-                                Err(EvalError::TooFewValues {
-                                    available: vs.0.len(),
-                                    expected: 1,
-                                })
-                            } else {
-                                vs.0.push(vs.0.last().unwrap().clone());
-                                *eii = Box::new(Expr::default());
-                                Ok(())
-                            }
-                        }
-                        Intrinsic::Drop => {
-                            let vs = vms.0.entry(*sii).or_default();
-                            if vs.0.len() < 1 {
-                                Err(EvalError::TooFewValues {
-                                    available: vs.0.len(),
-                                    expected: 1,
-                                })
-                            } else {
-                                vs.0.pop();
-                                *eii = Box::new(Expr::default());
-                                Ok(())
-                            }
-                        }
-                        Intrinsic::Quote => {
-                            let vs = vms.0.entry(*sii).or_default();
-                            if vs.0.len() < 1 {
-                                Err(EvalError::TooFewValues {
-                                    available: vs.0.len(),
-                                    expected: 1,
-                                })
-                            } else {
-                                let v = vs.0.pop().unwrap();
-                                let qe = match v {
-                                    Value::Call(sym) => Expr::Call(sym),
-                                    Value::Quote(e) => Expr::Quote(e),
-                                };
-                                vs.0.push(Value::Quote(Box::new(qe)));
-                                *eii = Box::new(Expr::default());
-                                Ok(())
-                            }
-                        }
-                        Intrinsic::Compose => {
-                            let vs = vms.0.entry(*sii).or_default();
-                            if vs.0.len() < 2 {
-                                Err(EvalError::TooFewValues {
-                                    available: vs.0.len(),
-                                    expected: 2,
-                                })
-                            } else {
-                                let e2 = self.unquote_value(vs.0.pop().unwrap())?;
-                                let e1 = self.unquote_value(vs.0.pop().unwrap())?;
-                                let mut new_es = match (e1, e2) {
-                                    (Expr::Compose(mut e1s), Expr::Compose(mut e2s)) => {
-                                        e1s.extend(e2s.drain(..));
-                                        e1s
+            Expr::StackContext(si, ei) => {
+                match &mut (**ei) {
+                    Expr::StackContext(sii, eii) => {
+                        match &mut (**eii) {
+                            Expr::Intrinsic(intr) => match intr {
+                                Intrinsic::Push => {
+                                    let vsi = vms.0.entry(*si).or_default();
+                                    if vsi.0.len() < 1 {
+                                        Err(EvalError::TooFewValues {
+                                            available: vsi.0.len(),
+                                            expected: 1,
+                                        })
+                                    } else {
+                                        let v = vsi.0.pop().unwrap();
+                                        let vsii = vms.0.entry(*sii).or_default();
+                                        vsii.0.push(v);
+                                        vms.remove_empty_stacks();
+                                        *eii = Box::new(Expr::default());
+                                        Ok(SmallStepRule::IntrPush)
                                     }
-                                    (Expr::Compose(mut e1s), e2) => {
-                                        e1s.push(e2);
-                                        e1s
+                                }
+                                Intrinsic::Pop => {
+                                    let vsii = vms.0.entry(*sii).or_default();
+                                    if vsii.0.len() < 1 {
+                                        Err(EvalError::TooFewValues {
+                                            available: vsii.0.len(),
+                                            expected: 1,
+                                        })
+                                    } else {
+                                        let v = vsii.0.pop().unwrap();
+                                        let vsi = vms.0.entry(*si).or_default();
+                                        vsi.0.push(v);
+                                        vms.remove_empty_stacks();
+                                        *eii = Box::new(Expr::default());
+                                        Ok(SmallStepRule::IntrPop)
                                     }
-                                    (e1, Expr::Compose(mut e2s)) => {
-                                        e2s.insert(0, e1);
-                                        e2s
+                                }
+                                Intrinsic::Clone => {
+                                    let vs = vms.0.entry(*sii).or_default();
+                                    if vs.0.len() < 1 {
+                                        Err(EvalError::TooFewValues {
+                                            available: vs.0.len(),
+                                            expected: 1,
+                                        })
+                                    } else {
+                                        vs.0.push(vs.0.last().unwrap().clone());
+                                        *eii = Box::new(Expr::default());
+                                        Ok(SmallStepRule::IntrClone)
                                     }
-                                    (e1, e2) => vec![e1, e2],
-                                };
-                                let new_e = if new_es.len() == 1 {
-                                    new_es.drain(..).next().unwrap()
+                                }
+                                Intrinsic::Drop => {
+                                    let vs = vms.0.entry(*sii).or_default();
+                                    if vs.0.len() < 1 {
+                                        Err(EvalError::TooFewValues {
+                                            available: vs.0.len(),
+                                            expected: 1,
+                                        })
+                                    } else {
+                                        vs.0.pop();
+                                        vms.remove_empty_stacks();
+                                        *eii = Box::new(Expr::default());
+                                        Ok(SmallStepRule::IntrDrop)
+                                    }
+                                }
+                                Intrinsic::Quote => {
+                                    let vs = vms.0.entry(*sii).or_default();
+                                    if vs.0.len() < 1 {
+                                        Err(EvalError::TooFewValues {
+                                            available: vs.0.len(),
+                                            expected: 1,
+                                        })
+                                    } else {
+                                        let v = vs.0.pop().unwrap();
+                                        let qe = match v {
+                                            Value::Call(sym) => Expr::Call(sym),
+                                            Value::Quote(e) => Expr::Quote(e),
+                                        };
+                                        vs.0.push(Value::Quote(Box::new(qe)));
+                                        *eii = Box::new(Expr::default());
+                                        Ok(SmallStepRule::IntrQuote)
+                                    }
+                                }
+                                Intrinsic::Compose => {
+                                    let vs = vms.0.entry(*sii).or_default();
+                                    if vs.0.len() < 2 {
+                                        Err(EvalError::TooFewValues {
+                                            available: vs.0.len(),
+                                            expected: 2,
+                                        })
+                                    } else {
+                                        let e2 = self.unquote_value(vs.0.pop().unwrap())?;
+                                        let e1 = self.unquote_value(vs.0.pop().unwrap())?;
+                                        let mut new_es = match (e1, e2) {
+                                            (Expr::Compose(mut e1s), Expr::Compose(mut e2s)) => {
+                                                e1s.extend(e2s.drain(..));
+                                                e1s
+                                            }
+                                            (Expr::Compose(mut e1s), e2) => {
+                                                e1s.push(e2);
+                                                e1s
+                                            }
+                                            (e1, Expr::Compose(mut e2s)) => {
+                                                e2s.insert(0, e1);
+                                                e2s
+                                            }
+                                            (e1, e2) => vec![e1, e2],
+                                        };
+                                        let new_e = if new_es.len() == 1 {
+                                            new_es.drain(..).next().unwrap()
+                                        } else {
+                                            Expr::Compose(new_es)
+                                        };
+                                        vs.0.push(Value::Quote(Box::new(new_e)));
+                                        *eii = Box::new(Expr::default());
+                                        Ok(SmallStepRule::IntrCompose)
+                                    }
+                                }
+                                Intrinsic::Apply => {
+                                    let vs = vms.0.entry(*sii).or_default();
+                                    if vs.0.len() < 1 {
+                                        Err(EvalError::TooFewValues {
+                                            available: vs.0.len(),
+                                            expected: 1,
+                                        })
+                                    } else {
+                                        let e1 = self.unquote_value(vs.0.pop().unwrap())?;
+                                        vms.remove_empty_stacks();
+                                        *eii = Box::new(e1);
+                                        // TODO: fixup shadowed nested StackId's
+                                        Ok(SmallStepRule::IntrApply)
+                                    }
+                                }
+                            },
+                            Expr::Call(sym) => {
+                                if let Some(new_e) = self.terms.get(sym) {
+                                    let vs = vms.0.entry(*sii).or_default();
+                                    match new_e {
+                                        Expr::Quote(_) => {
+                                            vs.0.push(Value::Call(*sym));
+                                            *e = Expr::default();
+                                            Ok(SmallStepRule::LitCallQuote)
+                                        }
+                                        _ => {
+                                            *eii = Box::new(new_e.clone());
+                                            // TODO: fixup shadowed nested StackId's
+                                            Ok(SmallStepRule::LitCall)
+                                        }
+                                    }
                                 } else {
-                                    Expr::Compose(new_es)
-                                };
-                                vs.0.push(Value::Quote(Box::new(new_e)));
+                                    Err(EvalError::UndefinedTerm(*sym))
+                                }
+                            }
+                            Expr::Quote(qe) => {
+                                let vs = vms.0.entry(*sii).or_default();
+                                vs.0.push(Value::Quote(qe.clone()));
                                 *eii = Box::new(Expr::default());
-                                Ok(())
+                                Ok(SmallStepRule::LitQuote)
                             }
-                        }
-                        Intrinsic::Apply => {
-                            let vs = vms.0.entry(*sii).or_default();
-                            if vs.0.len() < 1 {
-                                Err(EvalError::TooFewValues {
-                                    available: vs.0.len(),
-                                    expected: 1,
-                                })
-                            } else {
-                                let e1 = self.unquote_value(vs.0.pop().unwrap())?;
-                                *eii = Box::new(e1);
-                                // TODO: fixup shadowed nested StackId's
-                                Ok(())
-                            }
-                        }
-                    },
-                    Expr::Call(sym) => {
-                        if let Some(new_e) = self.terms.get(sym) {
-                            let vs = vms.0.entry(*sii).or_default();
-                            match new_e {
-                                Expr::Quote(_) => {
-                                    vs.0.push(Value::Call(*sym));
-                                    *eii = Box::new(Expr::default());
-                                    Ok(())
-                                }
-                                _ => {
-                                    *eii = Box::new(new_e.clone());
-                                    // TODO: fixup shadowed nested StackId's
-                                    Ok(())
+                            Expr::Compose(ref mut es) => {
+                                let es_len = es.len();
+                                if es_len == 0 {
+                                    *e = Expr::default();
+                                    Ok(SmallStepRule::StkCtxEmpty)
+                                } else {
+                                    // Distribute the stack context.
+                                    let e2 = Expr::StackContext(
+                                        *sii,
+                                        Box::new(Expr::Compose(es.drain(1..).collect())),
+                                    );
+                                    let e1 = Expr::StackContext(*sii, Box::new(es.pop().unwrap()));
+                                    *ei = Box::new(Expr::Compose(vec![e1, e2]));
+                                    Ok(SmallStepRule::StkCtxDistr)
                                 }
                             }
-                        } else {
-                            Err(EvalError::UndefinedTerm(*sym))
+                            Expr::StackContext(..) => {
+                                *e = (**ei).clone();
+                                Ok(SmallStepRule::StkCtxRedund)
+                            }
                         }
-                    }
-                    Expr::Quote(qe) => {
-                        let vs = vms.0.entry(*sii).or_default();
-                        vs.0.push(Value::Quote(qe.clone()));
-                        *eii = Box::new(Expr::default());
-                        Ok(())
                     }
                     Expr::Compose(ref mut es) => {
                         let es_len = es.len();
                         if es_len == 0 {
                             *e = Expr::default();
-                            Ok(())
+                            Ok(SmallStepRule::StkCtxEmpty)
                         } else {
-                            let e1 = es.first_mut().unwrap();
-                            self.small_step(vms, e1)?;
-                            match e1 {
-                                Expr::Compose(e1s) => {
-                                    let mut new_es = Vec::with_capacity(e1s.len() + es_len - 1);
-                                    new_es.extend(e1s.drain(..));
-                                    new_es.extend(es.drain(1..));
-                                    let new_e = if new_es.len() == 1 {
-                                        new_es.drain(..).next().unwrap()
-                                    } else {
-                                        Expr::Compose(new_es)
-                                    };
-                                    *eii = Box::new(new_e);
-                                }
-                                _ => {}
-                            }
-                            Ok(())
+                            // Distribute the stack context.
+                            let e2 = Expr::StackContext(
+                                *si,
+                                Box::new(Expr::Compose(es.drain(1..).collect())),
+                            );
+                            let e1 = Expr::StackContext(*si, Box::new(es.pop().unwrap()));
+                            *e = Expr::Compose(vec![e1, e2]);
+                            Ok(SmallStepRule::StkCtxDistr)
                         }
                     }
-                    Expr::StackContext(..) => {
-                        *e = (**ei).clone();
-                        Ok(())
-                    }
-                },
-                Expr::Compose(ref mut es) => {
-                    let es_len = es.len();
-                    if es_len == 0 {
-                        *e = Expr::default();
-                        Ok(())
-                    } else {
-                        Err(EvalError::MissingStackContexts(e.clone()))
-                    }
+                    _ => Err(EvalError::MissingStackContexts(e.clone())),
                 }
-                _ => Err(EvalError::MissingStackContexts(e.clone())),
-            },
+            }
             Expr::Compose(ref mut es) => {
                 let es_len = es.len();
                 if es_len == 0 {
-                    Ok(())
+                    Ok(SmallStepRule::Empty)
                 } else {
-                    Err(EvalError::MissingStackContexts(e.clone()))
+                    // Recurse on the first sub-expression
+                    let e1 = es.first_mut().unwrap();
+                    let rule = self.small_step(vms, e1)?;
+                    match e1 {
+                        Expr::Compose(e1s) => {
+                            // concatenate e1s and es
+                            if e1s.is_empty() {
+                                *e = Expr::Compose(es.drain(1..).collect());
+                            } else {
+                                let mut new_es = Vec::with_capacity(e1s.len() + es_len - 1);
+                                new_es.extend(e1s.drain(..));
+                                new_es.extend(es.drain(1..));
+                                let new_e = if new_es.len() == 1 {
+                                    new_es.drain(..).next().unwrap()
+                                } else {
+                                    Expr::Compose(new_es)
+                                };
+                                *e = new_e;
+                            }
+                        }
+                        _ => {}
+                    }
+                    Ok(rule)
                 }
             }
             _ => Err(EvalError::MissingStackContexts(e.clone())),

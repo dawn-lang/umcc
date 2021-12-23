@@ -19,13 +19,13 @@ pub Expr: Expr = {
 }
 
 SingleExpr: Expr = {
-    PUSH => Expr::Intrinsic(Intrinsic::Push),
-    POP => Expr::Intrinsic(Intrinsic::Pop),
-    CLONE => Expr::Intrinsic(Intrinsic::Clone),
-    DROP => Expr::Intrinsic(Intrinsic::Drop),
-    QUOTE => Expr::Intrinsic(Intrinsic::Quote),
-    COMPOSE => Expr::Intrinsic(Intrinsic::Compose),
-    APPLY => Expr::Intrinsic(Intrinsic::Apply),
+    push => Expr::Intrinsic(Intrinsic::Push),
+    pop => Expr::Intrinsic(Intrinsic::Pop),
+    clone => Expr::Intrinsic(Intrinsic::Clone),
+    drop => Expr::Intrinsic(Intrinsic::Drop),
+    quote => Expr::Intrinsic(Intrinsic::Quote),
+    compose => Expr::Intrinsic(Intrinsic::Compose),
+    apply => Expr::Intrinsic(Intrinsic::Apply),
     IDENT => Expr::Call(TermSymbol(interner.get_or_intern(<>))),
     LBRACKET <Expr> RBRACKET => Expr::Quote(Box::new(<>)),
     LPAREN <s:StackId> PIPE <e:Expr> RPAREN => {
@@ -48,7 +48,7 @@ pub(crate) StackId: StackId = {
 }
 
 pub TermDef: TermDef = {
-    TERM <t:TermSymbol> EQUAL <e:Expr> SEMICOLON => TermDef(t, e),
+    term <t:TermSymbol> EQUAL <e:Expr> SEMICOLON => TermDef(t, e),
 }
 
 pub Value: Value = {
@@ -64,9 +64,29 @@ pub ValueMultistack: ValueMultistack = {
     <mut vss:ValueStack*> => ValueMultistack(vss.drain(..).collect()),
 }
 
-pub(crate) SmallStepAssertion: (ValueMultistack, Expr, ValueMultistack, Expr) = {
-    <ivms: ValueMultistack> <ie: Expr> LONG_RARROW <ovms: ValueMultistack> <oe: Expr> => {
-        (ivms, ie, ovms, oe)
+pub(crate) SmallStepRule: SmallStepRule = {
+    Empty => SmallStepRule::Empty,
+    IntrPush => SmallStepRule::IntrPush,
+    IntrPop => SmallStepRule::IntrPop,
+    IntrClone => SmallStepRule::IntrClone,
+    IntrDrop => SmallStepRule::IntrDrop,
+    IntrQuote => SmallStepRule::IntrQuote,
+    IntrCompose => SmallStepRule::IntrCompose,
+    IntrApply => SmallStepRule::IntrApply,
+    LitCallQuote => SmallStepRule::LitCallQuote,
+    LitCall => SmallStepRule::LitCall,
+    LitQuote => SmallStepRule::LitQuote,
+    StkCtxDistr => SmallStepRule::StkCtxDistr,
+    StkCtxRedund => SmallStepRule::StkCtxRedund,
+    StkCtxEmpty => SmallStepRule::StkCtxEmpty,
+}
+
+pub(crate) SmallStepAssertion:
+    (ValueMultistack, Expr, SmallStepRule, ValueMultistack, Expr) = {
+    <ivms: ValueMultistack> <ie: Expr>
+        LONG_RARROW <rule:SmallStepRule>
+        <ovms: ValueMultistack> <oe: Expr> => {
+        (ivms, ie, rule, ovms, oe)
     }
 }
 
@@ -84,18 +104,32 @@ match {
     r"\)" => RPAREN,
     r"\[" => LBRACKET,
     r"\]" => RBRACKET,
-    r"push" => PUSH,
-    r"pop" => POP,
-    r"clone" => CLONE,
-    r"drop" => DROP,
-    r"quote" => QUOTE,
-    r"compose" => COMPOSE,
-    r"apply" => APPLY,
-    r"term" => TERM,
+    r"push" => push,
+    r"pop" => pop,
+    r"clone" => clone,
+    r"drop" => drop,
+    r"quote" => quote,
+    r"compose" => compose,
+    r"apply" => apply,
+    r"term" => term,
     r"=" => EQUAL,
     r";" => SEMICOLON,
     r"⟨" => BRA,
     r"⟩" => KET,
+    r"Empty" => Empty,
+    r"IntrPush" => IntrPush,
+    r"IntrPop" => IntrPop,
+    r"IntrClone" => IntrClone,
+    r"IntrDrop" => IntrDrop,
+    r"IntrQuote" => IntrQuote,
+    r"IntrCompose" => IntrCompose,
+    r"IntrApply" => IntrApply,
+    r"LitCallQuote" => LitCallQuote,
+    r"LitCall" => LitCall,
+    r"LitQuote" => LitQuote,
+    r"StkCtxDistr" => StkCtxDistr,
+    r"StkCtxRedund" => StkCtxRedund,
+    r"StkCtxEmpty" => StkCtxEmpty,
     r"⟶" => LONG_RARROW,
     r"⇓" => DDARROW,
 } else {
