@@ -4,7 +4,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-pub(crate) static TERM_DEF_SRCS: [&'static str; 24] = [
+pub(crate) static TERM_DEF_SRCS: [&'static str; 21] = [
     "term swap = (s1|push)(s2|push)(s1|pop)(s2|pop);",
     "term v1 = [];",
     "term v2 = [];",
@@ -17,16 +17,13 @@ pub(crate) static TERM_DEF_SRCS: [&'static str; 24] = [
     "term quote3 = quote2 swap quote swap compose;",
     "term rotate3 = quote2 swap quote compose apply;",
     "term rotate4 = quote3 swap quote compose apply;",
-    "term compose2 = compose;",
-    "term compose3 = compose compose2;",
-    "term compose4 = compose compose3;",
-    "term compose5 = compose compose4;",
+    "term _succ = (n|push) [clone] (n|clone pop) apply [compose] (n|pop) apply apply;",
     "term n0 = [drop];",
-    "term n1 = [[clone] n0 apply [compose] n0 apply apply];",
-    "term n2 = [[clone] n1 apply [compose] n1 apply apply];",
-    "term n3 = [[clone] n2 apply [compose] n2 apply apply];",
-    "term n4 = [[clone] n3 apply [compose] n3 apply apply];",
-    "term succ = quote [apply] compose [[clone]] swap clone [[compose]] swap [apply] compose5;",
+    "term n1 = [n0 _succ];",
+    "term n2 = [n1 _succ];",
+    "term n3 = [n2 _succ];",
+    "term n4 = [n3 _succ];",
+    "term succ = quote [_succ] compose;",
     "term add = [succ] swap apply;",
     "term mul = n0 rotate3 quote [add] compose rotate3 apply;",
 ];
