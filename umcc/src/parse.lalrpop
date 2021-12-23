@@ -47,6 +47,10 @@ pub TermDef: TermDef = {
     term <t:TermSymbol> EQUAL <e:Expr> SEMICOLON => TermDef(t, e),
 }
 
+pub InterpItems: (Vec<TermDef>, Expr) = {
+    <ts:TermDef*> <e:Expr> => (ts, e),
+}
+
 pub Value: Value = {
     IDENT => Value::Call(TermSymbol(interner.get_or_intern(<>))),
     LBRACKET <Expr> RBRACKET => Value::Quote(Box::new(<>)),

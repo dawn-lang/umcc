@@ -119,6 +119,49 @@ fn test_parse_term_def() {
 }
 
 #[test]
+fn test_parse_interp_items() {
+    let interner = &mut Interner::default();
+    assert_eq!(
+        InterpItemsParser::new().parse(interner, "").unwrap(),
+        (vec![], Expr::Compose(vec![])),
+    );
+    assert_eq!(
+        InterpItemsParser::new().parse(interner, "foo").unwrap(),
+        (vec![], Expr::Call(TermSymbol(interner.get("foo").unwrap()))),
+    );
+    assert_eq!(
+        InterpItemsParser::new()
+            .parse(interner, "term empty = ;")
+            .unwrap(),
+        (
+            vec![TermDef(
+                TermSymbol(interner.get("empty").unwrap()),
+                ExprParser::new().parse(interner, "").unwrap()
+            )],
+            Expr::Compose(vec![])
+        ),
+    );
+    assert_eq!(
+        InterpItemsParser::new()
+            .parse(interner, "term empty1 = ; term empty2 = ; foo")
+            .unwrap(),
+        (
+            vec![
+                TermDef(
+                    TermSymbol(interner.get("empty1").unwrap()),
+                    ExprParser::new().parse(interner, "").unwrap()
+                ),
+                TermDef(
+                    TermSymbol(interner.get("empty2").unwrap()),
+                    ExprParser::new().parse(interner, "").unwrap()
+                )
+            ],
+            Expr::Call(TermSymbol(interner.get("foo").unwrap()))
+        ),
+    );
+}
+
+#[test]
 fn test_parse_value_call() {
     let interner = &mut Interner::default();
     assert_eq!(
