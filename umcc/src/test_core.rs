@@ -33,13 +33,15 @@ fn test_define_term_with_shadowing() {
     let mut ctx = Context::default();
     let sym = TermSymbol(ctx.interner.get_or_intern_static("foo"));
     let term_def1 = TermDefParser::new()
-        .parse(&mut ctx.interner, "term foo = (s|(s|e1));")
+        .parse(&mut ctx.interner, "term foo = (s|(s|e));")
         .unwrap();
-    let mut e1 = ExprParser::new().parse(&mut ctx.interner, "(s|(s|e1))").unwrap();
-    e1.deshadow();
+    let e = ExprParser::new().parse(&mut ctx.interner, "(s|(s|e))").unwrap();
+    let mut e_deshadowed = e.clone();
+    e_deshadowed.deshadow();
+    assert_ne!(e, e_deshadowed);
     assert_eq!(ctx.terms.get(&sym), None);
     assert_eq!(ctx.define_term(term_def1), None);
-    assert_eq!(ctx.terms.get(&sym), Some(&e1));
+    assert_eq!(ctx.terms.get(&sym), Some(&e_deshadowed));
 }
 
 #[test]
