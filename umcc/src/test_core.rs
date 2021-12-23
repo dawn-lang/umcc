@@ -171,6 +171,7 @@ fn test_big_step_with_deshadowing() {
     const MAX_SMALL_STEPS: usize = 2000;
     let cases = [
         "⟨s2|v1 v2⟩ (s1|(s2|swap)) ⇓ ⟨s2|v2 v1⟩",
+        "⟨s2|v1 v2 [(s1|push)(s2|push)(s1|pop)(s2|pop)]⟩ (s1|(s2|apply)) ⇓ ⟨s2|v2 v1⟩",
     ];
     let mut ctx = Context::default();
     for term_def_src in TERM_DEF_SRCS.iter() {
