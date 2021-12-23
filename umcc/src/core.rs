@@ -315,10 +315,14 @@ impl Context {
                                     Ok(SmallStepRule::StkCtxEmpty)
                                 } else {
                                     // Distribute the stack context.
-                                    let e2 = Expr::StackContext(
-                                        *sii,
-                                        Box::new(Expr::Compose(es.drain(1..).collect())),
-                                    );
+                                    let e2 = if es_len > 2 {
+                                        Expr::StackContext(
+                                            *sii,
+                                            Box::new(Expr::Compose(es.drain(1..).collect())),
+                                        )
+                                    } else {
+                                        Expr::StackContext(*sii, Box::new(es.pop().unwrap()))
+                                    };
                                     let e1 = Expr::StackContext(*sii, Box::new(es.pop().unwrap()));
                                     *ei = Box::new(Expr::Compose(vec![e1, e2]));
                                     Ok(SmallStepRule::StkCtxDistr)
@@ -337,10 +341,14 @@ impl Context {
                             Ok(SmallStepRule::StkCtxEmpty)
                         } else {
                             // Distribute the stack context.
-                            let e2 = Expr::StackContext(
-                                *si,
-                                Box::new(Expr::Compose(es.drain(1..).collect())),
-                            );
+                            let e2 = if es_len > 2 {
+                                Expr::StackContext(
+                                    *si,
+                                    Box::new(Expr::Compose(es.drain(1..).collect())),
+                                )
+                            } else {
+                                Expr::StackContext(*si, Box::new(es.pop().unwrap()))
+                            };
                             let e1 = Expr::StackContext(*si, Box::new(es.pop().unwrap()));
                             *e = Expr::Compose(vec![e1, e2]);
                             Ok(SmallStepRule::StkCtxDistr)
@@ -361,7 +369,11 @@ impl Context {
                         Expr::Compose(e1s) => {
                             // concatenate e1s and es
                             if e1s.is_empty() {
-                                *e = Expr::Compose(es.drain(1..).collect());
+                                if es_len > 2 {
+                                    *e = Expr::Compose(es.drain(1..).collect());
+                                } else {
+                                    *e = es.pop().unwrap();
+                                }
                             } else {
                                 let mut new_es = Vec::with_capacity(e1s.len() + es_len - 1);
                                 new_es.extend(e1s.drain(..));
