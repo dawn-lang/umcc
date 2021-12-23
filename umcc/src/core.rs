@@ -309,7 +309,7 @@ impl Context {
                                         let e1 = self.unquote_value(vs.0.pop().unwrap())?;
                                         vms.remove_empty_stacks();
                                         *eii = Box::new(e1);
-                                        // TODO: fixup shadowed nested StackId's
+                                        e.deshadow();
                                         Ok(SmallStepRule::IntrApply)
                                     }
                                 }
@@ -325,7 +325,7 @@ impl Context {
                                         }
                                         _ => {
                                             *eii = Box::new(new_e.clone());
-                                            // TODO: fixup shadowed nested StackId's
+                                            e.deshadow();
                                             Ok(SmallStepRule::LitCall)
                                         }
                                     }
