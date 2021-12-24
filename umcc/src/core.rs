@@ -242,130 +242,182 @@ impl Context {
                         match &mut (**eii) {
                             Expr::Intrinsic(intr) => match intr {
                                 Intrinsic::Push => {
-                                    let vsi = vms.0.entry(*si).or_default();
-                                    if vsi.0.len() < 1 {
+                                    if !vms.0.contains_key(si) {
                                         Err(EvalError::TooFewValues {
-                                            available: vsi.0.len(),
+                                            available: 0,
                                             expected: 1,
                                         })
                                     } else {
-                                        let v = vsi.0.pop().unwrap();
-                                        let vsii = vms.0.entry(*sii).or_default();
-                                        vsii.0.push(v);
-                                        vms.remove_empty_stacks();
-                                        *e = Expr::default();
-                                        Ok(SmallStepRule::IntrPush)
+                                        let vsi = vms.0.entry(*si).or_default();
+                                        if vsi.0.len() < 1 {
+                                            Err(EvalError::TooFewValues {
+                                                available: vsi.0.len(),
+                                                expected: 1,
+                                            })
+                                        } else {
+                                            let v = vsi.0.pop().unwrap();
+                                            let vsii = vms.0.entry(*sii).or_default();
+                                            vsii.0.push(v);
+                                            vms.remove_empty_stacks();
+                                            *e = Expr::default();
+                                            Ok(SmallStepRule::IntrPush)
+                                        }
                                     }
                                 }
                                 Intrinsic::Pop => {
-                                    let vsii = vms.0.entry(*sii).or_default();
-                                    if vsii.0.len() < 1 {
+                                    if !vms.0.contains_key(sii) {
                                         Err(EvalError::TooFewValues {
-                                            available: vsii.0.len(),
+                                            available: 0,
                                             expected: 1,
                                         })
                                     } else {
-                                        let v = vsii.0.pop().unwrap();
-                                        let vsi = vms.0.entry(*si).or_default();
-                                        vsi.0.push(v);
-                                        vms.remove_empty_stacks();
-                                        *e = Expr::default();
-                                        Ok(SmallStepRule::IntrPop)
+                                        let vsii = vms.0.entry(*sii).or_default();
+                                        if vsii.0.len() < 1 {
+                                            Err(EvalError::TooFewValues {
+                                                available: vsii.0.len(),
+                                                expected: 1,
+                                            })
+                                        } else {
+                                            let v = vsii.0.pop().unwrap();
+                                            let vsi = vms.0.entry(*si).or_default();
+                                            vsi.0.push(v);
+                                            vms.remove_empty_stacks();
+                                            *e = Expr::default();
+                                            Ok(SmallStepRule::IntrPop)
+                                        }
                                     }
                                 }
                                 Intrinsic::Clone => {
-                                    let vs = vms.0.entry(*sii).or_default();
-                                    if vs.0.len() < 1 {
+                                    if !vms.0.contains_key(sii) {
                                         Err(EvalError::TooFewValues {
-                                            available: vs.0.len(),
+                                            available: 0,
                                             expected: 1,
                                         })
                                     } else {
-                                        vs.0.push(vs.0.last().unwrap().clone());
-                                        *e = Expr::default();
-                                        Ok(SmallStepRule::IntrClone)
+                                        let vs = vms.0.entry(*sii).or_default();
+                                        if vs.0.len() < 1 {
+                                            Err(EvalError::TooFewValues {
+                                                available: vs.0.len(),
+                                                expected: 1,
+                                            })
+                                        } else {
+                                            vs.0.push(vs.0.last().unwrap().clone());
+                                            *e = Expr::default();
+                                            Ok(SmallStepRule::IntrClone)
+                                        }
                                     }
                                 }
                                 Intrinsic::Drop => {
-                                    let vs = vms.0.entry(*sii).or_default();
-                                    if vs.0.len() < 1 {
+                                    if !vms.0.contains_key(sii) {
                                         Err(EvalError::TooFewValues {
-                                            available: vs.0.len(),
+                                            available: 0,
                                             expected: 1,
                                         })
                                     } else {
-                                        vs.0.pop();
-                                        vms.remove_empty_stacks();
-                                        *e = Expr::default();
-                                        Ok(SmallStepRule::IntrDrop)
+                                        let vs = vms.0.entry(*sii).or_default();
+                                        if vs.0.len() < 1 {
+                                            Err(EvalError::TooFewValues {
+                                                available: vs.0.len(),
+                                                expected: 1,
+                                            })
+                                        } else {
+                                            vs.0.pop();
+                                            vms.remove_empty_stacks();
+                                            *e = Expr::default();
+                                            Ok(SmallStepRule::IntrDrop)
+                                        }
                                     }
                                 }
                                 Intrinsic::Quote => {
-                                    let vs = vms.0.entry(*sii).or_default();
-                                    if vs.0.len() < 1 {
+                                    if !vms.0.contains_key(sii) {
                                         Err(EvalError::TooFewValues {
-                                            available: vs.0.len(),
+                                            available: 0,
                                             expected: 1,
                                         })
                                     } else {
-                                        let v = vs.0.pop().unwrap();
-                                        let qe = match v {
-                                            Value::Call(sym) => Expr::Call(sym),
-                                            Value::Quote(e) => Expr::Quote(e),
-                                        };
-                                        vs.0.push(Value::Quote(Box::new(qe)));
-                                        *e = Expr::default();
-                                        Ok(SmallStepRule::IntrQuote)
+                                        let vs = vms.0.entry(*sii).or_default();
+                                        if vs.0.len() < 1 {
+                                            Err(EvalError::TooFewValues {
+                                                available: vs.0.len(),
+                                                expected: 1,
+                                            })
+                                        } else {
+                                            let v = vs.0.pop().unwrap();
+                                            let qe = match v {
+                                                Value::Call(sym) => Expr::Call(sym),
+                                                Value::Quote(e) => Expr::Quote(e),
+                                            };
+                                            vs.0.push(Value::Quote(Box::new(qe)));
+                                            *e = Expr::default();
+                                            Ok(SmallStepRule::IntrQuote)
+                                        }
                                     }
                                 }
                                 Intrinsic::Compose => {
-                                    let vs = vms.0.entry(*sii).or_default();
-                                    if vs.0.len() < 2 {
+                                    if !vms.0.contains_key(sii) {
                                         Err(EvalError::TooFewValues {
-                                            available: vs.0.len(),
+                                            available: 0,
                                             expected: 2,
                                         })
                                     } else {
-                                        let e2 = self.unquote_value(vs.0.pop().unwrap())?;
-                                        let e1 = self.unquote_value(vs.0.pop().unwrap())?;
-                                        let mut new_es = match (e1, e2) {
-                                            (Expr::Compose(mut e1s), Expr::Compose(mut e2s)) => {
-                                                e1s.extend(e2s.drain(..));
-                                                e1s
-                                            }
-                                            (Expr::Compose(mut e1s), e2) => {
-                                                e1s.push(e2);
-                                                e1s
-                                            }
-                                            (e1, Expr::Compose(mut e2s)) => {
-                                                e2s.insert(0, e1);
-                                                e2s
-                                            }
-                                            (e1, e2) => vec![e1, e2],
-                                        };
-                                        let new_e = if new_es.len() == 1 {
-                                            new_es.drain(..).next().unwrap()
+                                        let vs = vms.0.entry(*sii).or_default();
+                                        if vs.0.len() < 2 {
+                                            Err(EvalError::TooFewValues {
+                                                available: vs.0.len(),
+                                                expected: 2,
+                                            })
                                         } else {
-                                            Expr::Compose(new_es)
-                                        };
-                                        vs.0.push(Value::Quote(Box::new(new_e)));
-                                        *e = Expr::default();
-                                        Ok(SmallStepRule::IntrCompose)
+                                            let e2 = self.unquote_value(vs.0.pop().unwrap())?;
+                                            let e1 = self.unquote_value(vs.0.pop().unwrap())?;
+                                            let mut new_es = match (e1, e2) {
+                                                (
+                                                    Expr::Compose(mut e1s),
+                                                    Expr::Compose(mut e2s),
+                                                ) => {
+                                                    e1s.extend(e2s.drain(..));
+                                                    e1s
+                                                }
+                                                (Expr::Compose(mut e1s), e2) => {
+                                                    e1s.push(e2);
+                                                    e1s
+                                                }
+                                                (e1, Expr::Compose(mut e2s)) => {
+                                                    e2s.insert(0, e1);
+                                                    e2s
+                                                }
+                                                (e1, e2) => vec![e1, e2],
+                                            };
+                                            let new_e = if new_es.len() == 1 {
+                                                new_es.drain(..).next().unwrap()
+                                            } else {
+                                                Expr::Compose(new_es)
+                                            };
+                                            vs.0.push(Value::Quote(Box::new(new_e)));
+                                            *e = Expr::default();
+                                            Ok(SmallStepRule::IntrCompose)
+                                        }
                                     }
                                 }
                                 Intrinsic::Apply => {
-                                    let vs = vms.0.entry(*sii).or_default();
-                                    if vs.0.len() < 1 {
+                                    if !vms.0.contains_key(sii) {
                                         Err(EvalError::TooFewValues {
-                                            available: vs.0.len(),
+                                            available: 0,
                                             expected: 1,
                                         })
                                     } else {
-                                        let e1 = self.unquote_value(vs.0.pop().unwrap())?;
-                                        vms.remove_empty_stacks();
-                                        *eii = Box::new(e1);
-                                        e.deshadow();
-                                        Ok(SmallStepRule::IntrApply)
+                                        let vs = vms.0.entry(*sii).or_default();
+                                        if vs.0.len() < 1 {
+                                            Err(EvalError::TooFewValues {
+                                                available: vs.0.len(),
+                                                expected: 1,
+                                            })
+                                        } else {
+                                            let e1 = self.unquote_value(vs.0.pop().unwrap())?;
+                                            vms.remove_empty_stacks();
+                                            *eii = Box::new(e1);
+                                            e.deshadow();
+                                            Ok(SmallStepRule::IntrApply)
+                                        }
                                     }
                                 }
                             },
