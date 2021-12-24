@@ -10,6 +10,19 @@ use crate::display::*;
 use crate::parse::*;
 
 #[test]
+fn test_expr_deshadow() {
+    let mut ctx = Context::default();
+    let s_sym = StackSymbol(ctx.interner.get_or_intern_static("s"));
+    let s_0 = StackId(s_sym, 0);
+    let e = Expr::StackContext(s_0, Box::new(Expr::StackContext(s_0, Box::new(Expr::Compose(vec![])))));
+    let mut e_deshadowed = e.clone();
+    e_deshadowed.deshadow();
+    let s_1 = StackId(s_sym, 1);
+    let e_expected = Expr::StackContext(s_0, Box::new(Expr::StackContext(s_1, Box::new(Expr::Compose(vec![])))));
+    assert_eq!(e_deshadowed, e_expected);
+}
+
+#[test]
 fn test_define_term() {
     let mut ctx = Context::default();
     let sym = TermSymbol(ctx.interner.get_or_intern_static("foo"));
