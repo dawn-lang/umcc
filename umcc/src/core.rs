@@ -144,8 +144,8 @@ pub enum EvalError {
     EmptyExpr,
     TooFewValues { available: usize, expected: usize },
     UndefinedTerm(TermSymbol),
-    Missing1StackContext(Expr),
-    Missing2StackContexts(Expr),
+    Missing1StackContext,
+    Missing2StackContexts,
 }
 
 impl Default for Context {
@@ -472,10 +472,10 @@ impl Context {
                             }
                         }
                     }
-                    _ => Err(EvalError::Missing1StackContext(e.clone())),
+                    _ => Err(EvalError::Missing1StackContext),
                 }
             }
-            _ => Err(EvalError::Missing2StackContexts(e.clone())),
+            _ => Err(EvalError::Missing2StackContexts),
         }
     }
 

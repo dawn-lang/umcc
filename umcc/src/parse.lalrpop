@@ -5,6 +5,7 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 use crate::core::*;
+use crate::interp::*;
 
 grammar(interner: &mut Interner);
 
@@ -49,6 +50,17 @@ pub TermDef: TermDef = {
 
 pub InterpItems: (Vec<TermDef>, Expr) = {
     <ts:TermDef*> <e:Expr> => (ts, e),
+}
+
+pub(crate) InterpCommand: InterpCommand = {
+    <is:InterpItems> => InterpCommand::Eval(is.0, is.1),
+    COLON_TRACE <Expr> => InterpCommand::Trace(<>),
+    COLON_SHOW <TermSymbol> => InterpCommand::Show(<>),
+    COLON_LIST => InterpCommand::List,
+    COLON_DROP => InterpCommand::Drop,
+    COLON_CLEAR => InterpCommand::Clear,
+    COLON_RESET => InterpCommand::Reset,
+    COLON_HELP => InterpCommand::Help,
 }
 
 pub Value: Value = {
@@ -130,6 +142,13 @@ match {
     r"StkCtxEmpty" => StkCtxEmpty,
     r"⟶" => LONG_RARROW,
     r"⇓" => DDARROW,
+    r":trace" => COLON_TRACE,
+    r":show" => COLON_SHOW,
+    r":list" => COLON_LIST,
+    r":drop" => COLON_DROP,
+    r":clear" => COLON_CLEAR,
+    r":reset" => COLON_RESET,
+    r":help" => COLON_HELP,
 } else {
     r"[_a-zA-Z][_a-zA-Z0-9]*" => IDENT,
 }

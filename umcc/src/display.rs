@@ -48,8 +48,8 @@ pub enum ResolvedEvalError {
     EmptyExpr,
     TooFewValues { available: usize, expected: usize },
     UndefinedTerm(ResolvedTermSymbol),
-    Missing1StackContext(ResolvedExpr),
-    Missing2StackContexts(ResolvedExpr),
+    Missing1StackContext,
+    Missing2StackContexts,
 }
 
 pub(crate) trait Resolve {
@@ -160,12 +160,8 @@ impl Resolve for EvalError {
             EvalError::UndefinedTerm(sym) => {
                 ResolvedEvalError::UndefinedTerm(sym.resolve(interner))
             }
-            EvalError::Missing1StackContext(e) => {
-                ResolvedEvalError::Missing1StackContext(e.resolve(interner))
-            }
-            EvalError::Missing2StackContexts(e) => {
-                ResolvedEvalError::Missing2StackContexts(e.resolve(interner))
-            }
+            EvalError::Missing1StackContext => ResolvedEvalError::Missing1StackContext,
+            EvalError::Missing2StackContexts => ResolvedEvalError::Missing2StackContexts,
         }
     }
 }
@@ -320,11 +316,11 @@ impl fmt::Display for ResolvedEvalError {
                 expected,
             } => write!(f, "Expected {} values. Found {}.", expected, available),
             ResolvedEvalError::UndefinedTerm(sym) => write!(f, "Undefined term: `{}`.", sym),
-            ResolvedEvalError::Missing1StackContext(e) => {
-                write!(f, "Missing one stack context: `{}`.", e)
+            ResolvedEvalError::Missing1StackContext => {
+                write!(f, "Missing one stack context.")
             }
-            ResolvedEvalError::Missing2StackContexts(e) => {
-                write!(f, "Missing two stack contexts: `{}`.", e)
+            ResolvedEvalError::Missing2StackContexts => {
+                write!(f, "Missing two stack contexts.")
             }
         }
     }

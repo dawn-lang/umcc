@@ -16,3 +16,7 @@ lalrpop_mod!(pub parse);
 mod test_parse;
 
 mod builtin;
+
+pub mod interp;
+#[cfg(test)]
+mod test_interp;
