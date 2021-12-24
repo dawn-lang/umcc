@@ -2,4 +2,5 @@
 members = [
     "umcc",
     "umcci",
+    "umcci-web",
 ]
