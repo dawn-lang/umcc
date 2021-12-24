@@ -306,7 +306,6 @@ impl fmt::Display for SmallStepRule {
             SmallStepRule::LitQuote => "LitQuote".fmt(f),
             SmallStepRule::StkCtxDistr => "StkCtxDistr".fmt(f),
             SmallStepRule::StkCtx3Redund => "StkCtx3Redund".fmt(f),
-            SmallStepRule::StkCtx2Redund => "StkCtx2Redund".fmt(f),
             SmallStepRule::StkCtxEmpty => "StkCtxEmpty".fmt(f),
         }
     }

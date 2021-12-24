@@ -261,7 +261,6 @@ fn test_parse_small_step_rule() {
         ("LitQuote", SmallStepRule::LitQuote),
         ("StkCtxDistr", SmallStepRule::StkCtxDistr),
         ("StkCtx3Redund", SmallStepRule::StkCtx3Redund),
-        ("StkCtx2Redund", SmallStepRule::StkCtx2Redund),
         ("StkCtxEmpty", SmallStepRule::StkCtxEmpty),
     ][..];
     for (src, expected) in cases {

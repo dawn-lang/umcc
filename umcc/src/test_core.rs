@@ -48,27 +48,22 @@ fn test_define_term_with_shadowing() {
 fn test_small_step() {
     let cases = [
         // Intrinsics
-        "⟨s1|v1⟩⟨s2|v2⟩ (s1|(s2|push)) ⟶IntrPush ⟨s2|v2 v1⟩ (s1|(s2|))",
-        "⟨s1|v1⟩⟨s2|v2⟩ (s1|(s2|pop)) ⟶IntrPop ⟨s1|v1 v2⟩ (s1|(s2|))",
-        "⟨s|v⟩ (s|clone) ⟶IntrClone ⟨s|v v⟩ (s|)",
-        "⟨s|v⟩ (s|drop) ⟶IntrDrop (s|)",
-        "⟨s|v⟩ (s|quote) ⟶IntrQuote ⟨s|[v]⟩ (s|)",
-        "⟨s|[e1 e2] [e3 e4]⟩ (s|compose) ⟶IntrCompose ⟨s|[e1 e2 e3 e4]⟩ (s|)",
-        "⟨s|[e]⟩ (s1|(s|apply)) ⟶IntrApply (s1|(s|e))",
-        "⟨s|[e1 e2]⟩ (s1|(s|apply)) ⟶IntrApply (s1|(s|e1 e2))",
+        "⟨s|V v⟩⟨sp|Vp vp⟩ (sp|(s|push)) ⟶IntrPush ⟨s|V v vp⟩⟨sp|Vp⟩",
+        "⟨s|V v⟩⟨sp|Vp vp⟩ (sp|(s|pop )) ⟶IntrPop  ⟨s|V⟩⟨sp|Vp vp v⟩",
+        "⟨s|V v⟩ (sp|(s|clone)) ⟶IntrClone ⟨s|V v v⟩",
+        "⟨s|V v⟩ (sp|(s|drop)) ⟶IntrDrop ⟨s|V⟩",
+        "⟨s|V v⟩ (sp|(s|quote)) ⟶IntrQuote ⟨s|V [v]⟩",
+        "⟨s|V [e1 e2] [e3 e4]⟩ (sp|(s|compose)) ⟶IntrCompose ⟨s|V [e1 e2 e3 e4]⟩",
+        "⟨s|V [e]⟩ (sp|(s|apply)) ⟶IntrApply ⟨s|V⟩ (sp|(s|e))",
+        "⟨s|V [e1 e2]⟩ (sp|(s|apply)) ⟶IntrApply ⟨s|V⟩ (sp|(s|e1 e2))",
         // Literal Quote
-        "(s|[e]) ⟶LitQuote ⟨s|[e]⟩ (s|)",
+        "(sp|(s|[e])) ⟶LitQuote ⟨s|[e]⟩",
         // Distribution
         "(s|a b c) ⟶StkCtxDistr (s|a) (s|b c)",
         "(s1|(s2|a b c)) ⟶StkCtxDistr (s1|(s2|a) (s2|b c))",
         "(s1|(s2|a) (s2|b c)) ⟶StkCtxDistr (s1|(s2|a)) (s1|(s2|b c))",
         // Redundant stack contexts
         "(s1|(s2|(s3|e))) ⟶StkCtx3Redund (s2|(s3|e))",
-        "(s1|(s2|clone)) ⟶StkCtx2Redund (s2|clone)",
-        "(s1|(s2|drop)) ⟶StkCtx2Redund (s2|drop)",
-        "(s1|(s2|quote)) ⟶StkCtx2Redund (s2|quote)",
-        "(s1|(s2|compose)) ⟶StkCtx2Redund (s2|compose)",
-        "(s1|(s2|[])) ⟶StkCtx2Redund (s2|[])",
         // Empty stack contexts
         "(s1|(s2|)) ⟶StkCtxEmpty (s1|)",
         "(s1|) ⟶StkCtxEmpty ",

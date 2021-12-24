@@ -136,7 +136,6 @@ pub enum SmallStepRule {
     LitQuote,
     StkCtxDistr,
     StkCtx3Redund,
-    StkCtx2Redund,
     StkCtxEmpty,
 }
 
@@ -219,98 +218,6 @@ impl Context {
             }
             Expr::StackContext(si, ei) => {
                 match &mut (**ei) {
-                    Expr::Intrinsic(intr) => match intr {
-                        Intrinsic::Push | Intrinsic::Pop => {
-                            Err(EvalError::Missing1StackContext(e.clone()))
-                        }
-                        Intrinsic::Clone => {
-                            let vs = vms.0.entry(*si).or_default();
-                            if vs.0.len() < 1 {
-                                Err(EvalError::TooFewValues {
-                                    available: vs.0.len(),
-                                    expected: 1,
-                                })
-                            } else {
-                                vs.0.push(vs.0.last().unwrap().clone());
-                                *ei = Box::new(Expr::default());
-                                Ok(SmallStepRule::IntrClone)
-                            }
-                        }
-                        Intrinsic::Drop => {
-                            let vs = vms.0.entry(*si).or_default();
-                            if vs.0.len() < 1 {
-                                Err(EvalError::TooFewValues {
-                                    available: vs.0.len(),
-                                    expected: 1,
-                                })
-                            } else {
-                                vs.0.pop();
-                                vms.remove_empty_stacks();
-                                *ei = Box::new(Expr::default());
-                                Ok(SmallStepRule::IntrDrop)
-                            }
-                        }
-                        Intrinsic::Quote => {
-                            let vs = vms.0.entry(*si).or_default();
-                            if vs.0.len() < 1 {
-                                Err(EvalError::TooFewValues {
-                                    available: vs.0.len(),
-                                    expected: 1,
-                                })
-                            } else {
-                                let v = vs.0.pop().unwrap();
-                                let qe = match v {
-                                    Value::Call(sym) => Expr::Call(sym),
-                                    Value::Quote(e) => Expr::Quote(e),
-                                };
-                                vs.0.push(Value::Quote(Box::new(qe)));
-                                *ei = Box::new(Expr::default());
-                                Ok(SmallStepRule::IntrQuote)
-                            }
-                        }
-                        Intrinsic::Compose => {
-                            let vs = vms.0.entry(*si).or_default();
-                            if vs.0.len() < 2 {
-                                Err(EvalError::TooFewValues {
-                                    available: vs.0.len(),
-                                    expected: 2,
-                                })
-                            } else {
-                                let e2 = self.unquote_value(vs.0.pop().unwrap())?;
-                                let e1 = self.unquote_value(vs.0.pop().unwrap())?;
-                                let mut new_es = match (e1, e2) {
-                                    (Expr::Compose(mut e1s), Expr::Compose(mut e2s)) => {
-                                        e1s.extend(e2s.drain(..));
-                                        e1s
-                                    }
-                                    (Expr::Compose(mut e1s), e2) => {
-                                        e1s.push(e2);
-                                        e1s
-                                    }
-                                    (e1, Expr::Compose(mut e2s)) => {
-                                        e2s.insert(0, e1);
-                                        e2s
-                                    }
-                                    (e1, e2) => vec![e1, e2],
-                                };
-                                let new_e = if new_es.len() == 1 {
-                                    new_es.drain(..).next().unwrap()
-                                } else {
-                                    Expr::Compose(new_es)
-                                };
-                                vs.0.push(Value::Quote(Box::new(new_e)));
-                                *ei = Box::new(Expr::default());
-                                Ok(SmallStepRule::IntrCompose)
-                            }
-                        }
-                        Intrinsic::Apply => Err(EvalError::Missing1StackContext(e.clone())),
-                    },
-                    Expr::Quote(qe) => {
-                        let vs = vms.0.entry(*si).or_default();
-                        vs.0.push(Value::Quote(qe.clone()));
-                        *ei = Box::new(Expr::default());
-                        Ok(SmallStepRule::LitQuote)
-                    }
                     Expr::Compose(ref mut es) => {
                         let es_len = es.len();
                         if es_len == 0 {
@@ -346,7 +253,7 @@ impl Context {
                                         let vsii = vms.0.entry(*sii).or_default();
                                         vsii.0.push(v);
                                         vms.remove_empty_stacks();
-                                        *eii = Box::new(Expr::default());
+                                        *e = Expr::default();
                                         Ok(SmallStepRule::IntrPush)
                                     }
                                 }
@@ -362,16 +269,89 @@ impl Context {
                                         let vsi = vms.0.entry(*si).or_default();
                                         vsi.0.push(v);
                                         vms.remove_empty_stacks();
-                                        *eii = Box::new(Expr::default());
+                                        *e = Expr::default();
                                         Ok(SmallStepRule::IntrPop)
                                     }
                                 }
-                                Intrinsic::Clone
-                                | Intrinsic::Drop
-                                | Intrinsic::Quote
-                                | Intrinsic::Compose => {
-                                    *e = (**ei).clone();
-                                    Ok(SmallStepRule::StkCtx2Redund)
+                                Intrinsic::Clone => {
+                                    let vs = vms.0.entry(*sii).or_default();
+                                    if vs.0.len() < 1 {
+                                        Err(EvalError::TooFewValues {
+                                            available: vs.0.len(),
+                                            expected: 1,
+                                        })
+                                    } else {
+                                        vs.0.push(vs.0.last().unwrap().clone());
+                                        *e = Expr::default();
+                                        Ok(SmallStepRule::IntrClone)
+                                    }
+                                }
+                                Intrinsic::Drop => {
+                                    let vs = vms.0.entry(*sii).or_default();
+                                    if vs.0.len() < 1 {
+                                        Err(EvalError::TooFewValues {
+                                            available: vs.0.len(),
+                                            expected: 1,
+                                        })
+                                    } else {
+                                        vs.0.pop();
+                                        vms.remove_empty_stacks();
+                                        *e = Expr::default();
+                                        Ok(SmallStepRule::IntrDrop)
+                                    }
+                                }
+                                Intrinsic::Quote => {
+                                    let vs = vms.0.entry(*sii).or_default();
+                                    if vs.0.len() < 1 {
+                                        Err(EvalError::TooFewValues {
+                                            available: vs.0.len(),
+                                            expected: 1,
+                                        })
+                                    } else {
+                                        let v = vs.0.pop().unwrap();
+                                        let qe = match v {
+                                            Value::Call(sym) => Expr::Call(sym),
+                                            Value::Quote(e) => Expr::Quote(e),
+                                        };
+                                        vs.0.push(Value::Quote(Box::new(qe)));
+                                        *e = Expr::default();
+                                        Ok(SmallStepRule::IntrQuote)
+                                    }
+                                }
+                                Intrinsic::Compose => {
+                                    let vs = vms.0.entry(*sii).or_default();
+                                    if vs.0.len() < 2 {
+                                        Err(EvalError::TooFewValues {
+                                            available: vs.0.len(),
+                                            expected: 2,
+                                        })
+                                    } else {
+                                        let e2 = self.unquote_value(vs.0.pop().unwrap())?;
+                                        let e1 = self.unquote_value(vs.0.pop().unwrap())?;
+                                        let mut new_es = match (e1, e2) {
+                                            (Expr::Compose(mut e1s), Expr::Compose(mut e2s)) => {
+                                                e1s.extend(e2s.drain(..));
+                                                e1s
+                                            }
+                                            (Expr::Compose(mut e1s), e2) => {
+                                                e1s.push(e2);
+                                                e1s
+                                            }
+                                            (e1, Expr::Compose(mut e2s)) => {
+                                                e2s.insert(0, e1);
+                                                e2s
+                                            }
+                                            (e1, e2) => vec![e1, e2],
+                                        };
+                                        let new_e = if new_es.len() == 1 {
+                                            new_es.drain(..).next().unwrap()
+                                        } else {
+                                            Expr::Compose(new_es)
+                                        };
+                                        vs.0.push(Value::Quote(Box::new(new_e)));
+                                        *e = Expr::default();
+                                        Ok(SmallStepRule::IntrCompose)
+                                    }
                                 }
                                 Intrinsic::Apply => {
                                     let vs = vms.0.entry(*sii).or_default();
@@ -408,9 +388,11 @@ impl Context {
                                     Err(EvalError::UndefinedTerm(*sym))
                                 }
                             }
-                            Expr::Quote(_) => {
-                                *e = (**ei).clone();
-                                Ok(SmallStepRule::StkCtx2Redund)
+                            Expr::Quote(qe) => {
+                                let vs = vms.0.entry(*sii).or_default();
+                                vs.0.push(Value::Quote(qe.clone()));
+                                *e = Expr::default();
+                                Ok(SmallStepRule::LitQuote)
                             }
                             Expr::Compose(ref mut es) => {
                                 let es_len = es.len();
