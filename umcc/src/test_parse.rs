@@ -249,7 +249,6 @@ fn test_parse_value_multistack_s1_call_s2_call() {
 #[test]
 fn test_parse_small_step_rule() {
     let cases = &[
-        ("Empty", SmallStepRule::Empty),
         ("IntrPush", SmallStepRule::IntrPush),
         ("IntrPop", SmallStepRule::IntrPop),
         ("IntrClone", SmallStepRule::IntrClone),
@@ -261,7 +260,8 @@ fn test_parse_small_step_rule() {
         ("LitCall", SmallStepRule::LitCall),
         ("LitQuote", SmallStepRule::LitQuote),
         ("StkCtxDistr", SmallStepRule::StkCtxDistr),
-        ("StkCtxRedund", SmallStepRule::StkCtxRedund),
+        ("StkCtx3Redund", SmallStepRule::StkCtx3Redund),
+        ("StkCtx2Redund", SmallStepRule::StkCtx2Redund),
         ("StkCtxEmpty", SmallStepRule::StkCtxEmpty),
     ][..];
     for (src, expected) in cases {
@@ -278,7 +278,7 @@ fn test_parse_small_step_assertion() {
     let interner = &mut Interner::default();
     assert_eq!(
         SmallStepAssertionParser::new()
-            .parse(interner, "⟨s1|v1⟩ e1 ⟶Empty ⟨s2|v2⟩ e2")
+            .parse(interner, "⟨s1|v1⟩ e1 ⟶IntrPush ⟨s2|v2⟩ e2")
             .unwrap(),
         (
             ValueMultistack(crate::map! {
@@ -286,7 +286,7 @@ fn test_parse_small_step_assertion() {
                     ValueStack(vec![Value::Call(TermSymbol(interner.get("v1").unwrap()))]),
             }),
             Expr::Call(TermSymbol(interner.get("e1").unwrap())),
-            SmallStepRule::Empty,
+            SmallStepRule::IntrPush,
             ValueMultistack(crate::map! {
                 StackId(StackSymbol(interner.get("s2").unwrap()), 0) =>
                     ValueStack(vec![Value::Call(TermSymbol(interner.get("v2").unwrap()))]),

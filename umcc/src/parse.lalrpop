@@ -65,7 +65,6 @@ pub ValueMultistack: ValueMultistack = {
 }
 
 pub(crate) SmallStepRule: SmallStepRule = {
-    Empty => SmallStepRule::Empty,
     IntrPush => SmallStepRule::IntrPush,
     IntrPop => SmallStepRule::IntrPop,
     IntrClone => SmallStepRule::IntrClone,
@@ -77,7 +76,8 @@ pub(crate) SmallStepRule: SmallStepRule = {
     LitCall => SmallStepRule::LitCall,
     LitQuote => SmallStepRule::LitQuote,
     StkCtxDistr => SmallStepRule::StkCtxDistr,
-    StkCtxRedund => SmallStepRule::StkCtxRedund,
+    StkCtx3Redund => SmallStepRule::StkCtx3Redund,
+    StkCtx2Redund => SmallStepRule::StkCtx2Redund,
     StkCtxEmpty => SmallStepRule::StkCtxEmpty,
 }
 
@@ -116,7 +116,6 @@ match {
     r";" => SEMICOLON,
     r"⟨" => BRA,
     r"⟩" => KET,
-    r"Empty" => Empty,
     r"IntrPush" => IntrPush,
     r"IntrPop" => IntrPop,
     r"IntrClone" => IntrClone,
@@ -128,7 +127,8 @@ match {
     r"LitCall" => LitCall,
     r"LitQuote" => LitQuote,
     r"StkCtxDistr" => StkCtxDistr,
-    r"StkCtxRedund" => StkCtxRedund,
+    r"StkCtx3Redund" => StkCtx3Redund,
+    r"StkCtx2Redund" => StkCtx2Redund,
     r"StkCtxEmpty" => StkCtxEmpty,
     r"⟶" => LONG_RARROW,
     r"⇓" => DDARROW,

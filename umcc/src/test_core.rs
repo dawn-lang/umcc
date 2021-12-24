@@ -47,19 +47,31 @@ fn test_define_term_with_shadowing() {
 #[test]
 fn test_small_step() {
     let cases = [
+        // Intrinsics
         "⟨s1|v1⟩⟨s2|v2⟩ (s1|(s2|push)) ⟶IntrPush ⟨s2|v2 v1⟩ (s1|(s2|))",
         "⟨s1|v1⟩⟨s2|v2⟩ (s1|(s2|pop)) ⟶IntrPop ⟨s1|v1 v2⟩ (s1|(s2|))",
-        "⟨s|v⟩ (s1|(s|clone)) ⟶IntrClone ⟨s|v v⟩ (s1|(s|))",
-        "⟨s|v⟩ (s1|(s|drop)) ⟶IntrDrop (s1|(s|))",
-        "⟨s|v⟩ (s1|(s|quote)) ⟶IntrQuote ⟨s|[v]⟩ (s1|(s|))",
-        "⟨s|[e1 e2] [e3 e4]⟩ (s1|(s|compose)) ⟶IntrCompose ⟨s|[e1 e2 e3 e4]⟩ (s1|(s|))",
+        "⟨s|v⟩ (s|clone) ⟶IntrClone ⟨s|v v⟩ (s|)",
+        "⟨s|v⟩ (s|drop) ⟶IntrDrop (s|)",
+        "⟨s|v⟩ (s|quote) ⟶IntrQuote ⟨s|[v]⟩ (s|)",
+        "⟨s|[e1 e2] [e3 e4]⟩ (s|compose) ⟶IntrCompose ⟨s|[e1 e2 e3 e4]⟩ (s|)",
         "⟨s|[e]⟩ (s1|(s|apply)) ⟶IntrApply (s1|(s|e))",
         "⟨s|[e1 e2]⟩ (s1|(s|apply)) ⟶IntrApply (s1|(s|e1 e2))",
-        "(s1|(s|[e])) ⟶LitQuote ⟨s|[e]⟩ (s1|(s|))",
-        "(s1|(s2|(s3|e))) ⟶StkCtxRedund (s2|(s3|e))",
-        "(s1|(s2|)) ⟶StkCtxEmpty ",
+        // Literal Quote
+        "(s|[e]) ⟶LitQuote ⟨s|[e]⟩ (s|)",
+        // Distribution
+        "(s|a b c) ⟶StkCtxDistr (s|a) (s|b c)",
+        "(s1|(s2|a b c)) ⟶StkCtxDistr (s1|(s2|a) (s2|b c))",
+        "(s1|(s2|a) (s2|b c)) ⟶StkCtxDistr (s1|(s2|a)) (s1|(s2|b c))",
+        // Redundant stack contexts
+        "(s1|(s2|(s3|e))) ⟶StkCtx3Redund (s2|(s3|e))",
+        "(s1|(s2|clone)) ⟶StkCtx2Redund (s2|clone)",
+        "(s1|(s2|drop)) ⟶StkCtx2Redund (s2|drop)",
+        "(s1|(s2|quote)) ⟶StkCtx2Redund (s2|quote)",
+        "(s1|(s2|compose)) ⟶StkCtx2Redund (s2|compose)",
+        "(s1|(s2|[])) ⟶StkCtx2Redund (s2|[])",
+        // Empty stack contexts
+        "(s1|(s2|)) ⟶StkCtxEmpty (s1|)",
         "(s1|) ⟶StkCtxEmpty ",
-        " ⟶Empty ",
     ];
     for case in cases {
         let mut ctx = Context::default();
@@ -78,7 +90,7 @@ fn test_small_step() {
                 vms2.resolve(&ctx.interner),
                 e2.resolve(&ctx.interner)
             ),
-            "Failed on {}",
+            "Failed on {:?}",
             case
         );
     }
@@ -110,7 +122,7 @@ fn test_big_step() {
         "⟨s|[e] n0⟩ (sp|(s|succ succ succ apply)) ⇓ (sp|(s|e e e))",
         "⟨s|[e] n1⟩ (sp|(s|succ apply)) ⇓ (sp|(s|e e))",
         "⟨s|[e] n2⟩ (sp|(s|succ apply)) ⇓ (sp|(s|e e e))",
-        "⟨s|[e] n0 n0⟩ (sp|(s|add apply)) ⇓ (sp|(s|))",
+        "⟨s|[e] n0 n0⟩ (sp|(s|add apply)) ⇓ ",
         "⟨s|[e] n0 n1⟩ (sp|(s|add apply)) ⇓ (sp|(s|e))",
         "⟨s|[e] n1 n0⟩ (sp|(s|add apply)) ⇓ (sp|(s|e))",
         "⟨s|[e] n1 n1⟩ (sp|(s|add apply)) ⇓ (sp|(s|e e))",
@@ -148,11 +160,11 @@ fn test_big_step() {
                 Ok(rule) => rule,
                 Err(err) => {
                     println!("Error: {:?}", err.resolve(&ctx.interner));
-                    panic!("Failed on {}", case);
+                    panic!("Failed on {:?}", case);
                 }
             };
             println!(
-                "⟶{:?} {} {}",
+                "⟶{} {} {}",
                 rule,
                 vms1.resolve(&ctx.interner),
                 e1.resolve(&ctx.interner)

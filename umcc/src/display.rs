@@ -5,8 +5,8 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 use crate::core::{
-    EvalError, Expr, Interner, Intrinsic, Map, StackId, StackSymbol, TermSymbol, Value,
-    ValueMultistack, ValueStack,
+    EvalError, Expr, Interner, Intrinsic, Map, SmallStepRule, StackId, StackSymbol, TermSymbol,
+    Value, ValueMultistack, ValueStack,
 };
 use std::fmt;
 
@@ -45,9 +45,11 @@ pub struct ResolvedValueMultistack(pub(crate) Map<ResolvedStackId, ResolvedValue
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ResolvedEvalError {
+    EmptyExpr,
     TooFewValues { available: usize, expected: usize },
     UndefinedTerm(ResolvedTermSymbol),
-    MissingStackContexts(ResolvedExpr),
+    Missing1StackContext(ResolvedExpr),
+    Missing2StackContexts(ResolvedExpr),
 }
 
 pub(crate) trait Resolve {
@@ -147,6 +149,7 @@ impl Resolve for EvalError {
     type Output = ResolvedEvalError;
     fn resolve(&self, interner: &Interner) -> Self::Output {
         match self {
+            EvalError::EmptyExpr => ResolvedEvalError::EmptyExpr,
             &EvalError::TooFewValues {
                 available,
                 expected,
@@ -157,8 +160,11 @@ impl Resolve for EvalError {
             EvalError::UndefinedTerm(sym) => {
                 ResolvedEvalError::UndefinedTerm(sym.resolve(interner))
             }
-            EvalError::MissingStackContexts(e) => {
-                ResolvedEvalError::MissingStackContexts(e.resolve(interner))
+            EvalError::Missing1StackContext(e) => {
+                ResolvedEvalError::Missing1StackContext(e.resolve(interner))
+            }
+            EvalError::Missing2StackContexts(e) => {
+                ResolvedEvalError::Missing2StackContexts(e.resolve(interner))
             }
         }
     }
@@ -282,5 +288,45 @@ impl fmt::Display for ResolvedValueMultistack {
             display_resolved_value_stack(sid, vs, f)?;
         }
         Ok(())
+    }
+}
+
+impl fmt::Display for SmallStepRule {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            SmallStepRule::IntrPush => "IntrPush".fmt(f),
+            SmallStepRule::IntrPop => "IntrPop".fmt(f),
+            SmallStepRule::IntrClone => "IntrClone".fmt(f),
+            SmallStepRule::IntrDrop => "IntrDrop".fmt(f),
+            SmallStepRule::IntrQuote => "IntrQuote".fmt(f),
+            SmallStepRule::IntrCompose => "IntrCompose".fmt(f),
+            SmallStepRule::IntrApply => "IntrApply".fmt(f),
+            SmallStepRule::LitCallQuote => "LitCallQuote".fmt(f),
+            SmallStepRule::LitCall => "LitCall".fmt(f),
+            SmallStepRule::LitQuote => "LitQuote".fmt(f),
+            SmallStepRule::StkCtxDistr => "StkCtxDistr".fmt(f),
+            SmallStepRule::StkCtx3Redund => "StkCtx3Redund".fmt(f),
+            SmallStepRule::StkCtx2Redund => "StkCtx2Redund".fmt(f),
+            SmallStepRule::StkCtxEmpty => "StkCtxEmpty".fmt(f),
+        }
+    }
+}
+
+impl fmt::Display for ResolvedEvalError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            ResolvedEvalError::EmptyExpr => write!(f, "Empty expression."),
+            ResolvedEvalError::TooFewValues {
+                available,
+                expected,
+            } => write!(f, "Expected {} values. Found {}.", expected, available),
+            ResolvedEvalError::UndefinedTerm(sym) => write!(f, "Undefined term: `{}`.", sym),
+            ResolvedEvalError::Missing1StackContext(e) => {
+                write!(f, "Missing one stack context: `{}`.", e)
+            }
+            ResolvedEvalError::Missing2StackContexts(e) => {
+                write!(f, "Missing two stack contexts: `{}`.", e)
+            }
+        }
     }
 }
