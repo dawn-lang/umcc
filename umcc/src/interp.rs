@@ -38,6 +38,8 @@ Commands available:
 
 pub struct Interp {
     ctx: Context,
+    _id: StackId,
+    __id: StackId,
     vms: ValueMultistack,
     command: Option<InterpCommand>,
 }
@@ -45,6 +47,8 @@ pub struct Interp {
 impl Default for Interp {
     fn default() -> Self {
         let mut ctx = Context::default();
+        let _id = StackId(StackSymbol(ctx.interner.get_or_intern_static("_")), 0);
+        let __id = StackId(StackSymbol(ctx.interner.get_or_intern_static("__")), 0);
         for term_def_src in TERM_DEF_SRCS.iter() {
             let term_def = TermDefParser::new()
                 .parse(&mut ctx.interner, term_def_src)
@@ -53,6 +57,8 @@ impl Default for Interp {
         }
         Self {
             ctx,
+            _id,
+            __id,
             vms: ValueMultistack::default(),
             command: None,
         }
@@ -62,6 +68,20 @@ impl Default for Interp {
 impl Interp {
     pub fn is_done(&self) -> bool {
         self.command.is_none()
+    }
+
+    fn add_missing_stack_contexts(&mut self, e: Expr) -> Expr {
+        match &e {
+            Expr::StackContext(_si, ei) => match &(**ei) {
+                Expr::Compose(es) if es.is_empty() => e,
+                Expr::StackContext(_sii, _eii) => e,
+                _ => Expr::StackContext(self._id, Box::new(e)),
+            },
+            _ => Expr::StackContext(
+                self.__id,
+                Box::new(Expr::StackContext(self._id, Box::new(e))),
+            ),
+        }
     }
 
     pub fn interp_start(&mut self, input: &str, w: &mut dyn io::Write) -> io::Result<()> {
@@ -80,6 +100,7 @@ impl Interp {
                     }
                 }
                 if e != Expr::default() {
+                    let e = self.add_missing_stack_contexts(e);
                     w.write_fmt(format_args!(
                         "{} {}\n",
                         self.vms.resolve(&self.ctx.interner),
@@ -89,12 +110,15 @@ impl Interp {
                 }
             }
             Ok(InterpCommand::Trace(e)) => {
-                w.write_fmt(format_args!(
-                    "{} {}\n",
-                    self.vms.resolve(&self.ctx.interner),
-                    e.resolve(&self.ctx.interner)
-                ))?;
-                self.command = Some(InterpCommand::Trace(e));
+                if e != Expr::default() {
+                    let e = self.add_missing_stack_contexts(e);
+                    w.write_fmt(format_args!(
+                        "{} {}\n",
+                        self.vms.resolve(&self.ctx.interner),
+                        e.resolve(&self.ctx.interner)
+                    ))?;
+                    self.command = Some(InterpCommand::Trace(e));
+                }
             }
             Ok(InterpCommand::Show(sym)) => {
                 if let Some(e) = self.ctx.terms.get(&sym) {

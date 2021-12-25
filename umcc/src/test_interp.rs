@@ -29,8 +29,8 @@ fn test_interp() {
         }]),
         TestSession(vec![TestCommand {
             input: ":trace",
-            start_output: " \n",
-            step_output: &[""][..],
+            start_output: "",
+            step_output: &[][..],
         }]),
         TestSession(vec![TestCommand {
             input: ":trace (s|)",
@@ -150,13 +150,13 @@ fn test_interp() {
         }]),
         TestSession(vec![TestCommand {
             input: "(s|foo)",
-            start_output: " (s|foo)\n",
-            step_output: &["⇓  (s|foo)\nMissing one stack context.\n"][..],
+            start_output: " (_|(s|foo))\n",
+            step_output: &["⇓  (_|(s|foo))\nUndefined term: `foo`.\n"][..],
         }]),
         TestSession(vec![TestCommand {
             input: "foo",
-            start_output: " foo\n",
-            step_output: &["⇓  foo\nMissing two stack contexts.\n"][..],
+            start_output: " (__|(_|foo))\n",
+            step_output: &["⇓  (__|(_|foo))\nUndefined term: `foo`.\n"][..],
         }]),
         TestSession(vec![TestCommand {
             input: "(sp|(s|true foo))",
