@@ -45,7 +45,7 @@ pub(crate) StackId: StackId = {
 }
 
 pub TermDef: TermDef = {
-    term <t:TermSymbol> EQUAL <e:Expr> SEMICOLON => TermDef(t, e),
+    LBRACE term <t:TermSymbol> EQUAL <e:Expr> RBRACE => TermDef(t, e),
 }
 
 pub InterpItems: (Vec<TermDef>, Expr) = {
@@ -115,6 +115,8 @@ match {
     r"\)" => RPAREN,
     r"\[" => LBRACKET,
     r"\]" => RBRACKET,
+    r"\{" => LBRACE,
+    r"\}" => RBRACE,
     r"push" => push,
     r"pop" => pop,
     r"clone" => clone,
@@ -124,7 +126,6 @@ match {
     r"apply" => apply,
     r"term" => term,
     r"=" => EQUAL,
-    r";" => SEMICOLON,
     r"⟨" => BRA,
     r"⟩" => KET,
     r"IntrPush" => IntrPush,

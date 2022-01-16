@@ -109,7 +109,7 @@ fn test_parse_term_def() {
     let interner = &mut Interner::default();
     assert_eq!(
         TermDefParser::new()
-            .parse(interner, "term empty = ;")
+            .parse(interner, "{term empty = }")
             .unwrap(),
         TermDef(
             TermSymbol(interner.get("empty").unwrap()),
@@ -131,7 +131,7 @@ fn test_parse_interp_items() {
     );
     assert_eq!(
         InterpItemsParser::new()
-            .parse(interner, "term empty = ;")
+            .parse(interner, "{term empty = }")
             .unwrap(),
         (
             vec![TermDef(
@@ -143,7 +143,7 @@ fn test_parse_interp_items() {
     );
     assert_eq!(
         InterpItemsParser::new()
-            .parse(interner, "term empty1 = ; term empty2 = ; foo")
+            .parse(interner, "{term empty1 = } {term empty2 = } foo")
             .unwrap(),
         (
             vec![

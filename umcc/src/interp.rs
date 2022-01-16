@@ -25,7 +25,7 @@ pub(crate) enum InterpCommand {
 pub(crate) static HELP: &'static str = "\
 Commands available:
 
-   term <sym> = <expr>;     define <sym> as <expr>
+   {term <sym> = <expr>}    define <sym> as <expr>
    <expr>                   evaluate <expr>
    :trace <expr>            trace the evaluation of <expr>
    :show <sym>              show the definition of <sym>
@@ -123,7 +123,7 @@ impl Interp {
             Ok(InterpCommand::Show(sym)) => {
                 if let Some(e) = self.ctx.terms.get(&sym) {
                     w.write_fmt(format_args!(
-                        "term {} = {};\n",
+                        "{{term {} = {}}}\n",
                         sym.resolve(&self.ctx.interner),
                         e.resolve(&self.ctx.interner)
                     ))?;

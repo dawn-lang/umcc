@@ -27,11 +27,11 @@ fn test_define_term() {
     let mut ctx = Context::default();
     let sym = TermSymbol(ctx.interner.get_or_intern_static("foo"));
     let term_def1 = TermDefParser::new()
-        .parse(&mut ctx.interner, "term foo = e1;")
+        .parse(&mut ctx.interner, "{term foo = e1}")
         .unwrap();
     let e1 = ExprParser::new().parse(&mut ctx.interner, "e1").unwrap();
     let term_def2 = TermDefParser::new()
-        .parse(&mut ctx.interner, "term foo = e2;")
+        .parse(&mut ctx.interner, "{term foo = e2}")
         .unwrap();
     let e2 = ExprParser::new().parse(&mut ctx.interner, "e2").unwrap();
     assert_eq!(ctx.terms.get(&sym), None);
@@ -46,7 +46,7 @@ fn test_define_term_with_shadowing() {
     let mut ctx = Context::default();
     let sym = TermSymbol(ctx.interner.get_or_intern_static("foo"));
     let term_def1 = TermDefParser::new()
-        .parse(&mut ctx.interner, "term foo = (s|(s|e));")
+        .parse(&mut ctx.interner, "{term foo = (s|(s|e))}")
         .unwrap();
     let e = ExprParser::new().parse(&mut ctx.interner, "(s|(s|e))").unwrap();
     let mut e_deshadowed = e.clone();

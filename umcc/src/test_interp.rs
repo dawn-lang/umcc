@@ -44,23 +44,23 @@ fn test_interp() {
                 step_output: &[][..],
             },
             TestCommand {
-                input: "term foo=;",
+                input: "{term foo=}",
                 start_output: "Defined `foo`.\n",
                 step_output: &[][..],
             },
             TestCommand {
                 input: ":show foo",
-                start_output: "term foo = ;\n",
+                start_output: "{term foo = }\n",
                 step_output: &[][..],
             },
             TestCommand {
-                input: "term foo=drop;",
+                input: "{term foo=drop}",
                 start_output: "Redefined `foo`.\n",
                 step_output: &[][..],
             },
             TestCommand {
                 input: ":show foo",
-                start_output: "term foo = drop;\n",
+                start_output: "{term foo = drop}\n",
                 step_output: &[][..],
             },
         ]),
@@ -76,7 +76,7 @@ fn test_interp() {
                 step_output: &[][..],
             },
             TestCommand {
-                input: "term foo=;",
+                input: "{term foo=}",
                 start_output: "Defined `foo`.\n",
                 step_output: &[][..],
             },
@@ -86,7 +86,7 @@ fn test_interp() {
                 step_output: &[][..],
             },
             TestCommand {
-                input: "term bar=;",
+                input: "{term bar=}",
                 start_output: "Defined `bar`.\n",
                 step_output: &[][..],
             },
