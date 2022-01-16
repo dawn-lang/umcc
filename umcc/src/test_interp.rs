@@ -221,6 +221,11 @@ fn test_interp() {
             start_output: " (sp|(s|n0 succ))\n",
             step_output: &["", "", "", "", "", "", "", "", "", "", "", "⇓ ⟨s|n1⟩ \n"][..],
         }]),
+        TestSession(vec![TestCommand {
+            input: "(s|(s|))",
+            start_output: " (s|(s'1|))\n",
+            step_output: &["", "", "⇓  \n"][..],
+        }]),
     ];
     let mut buffer = Vec::with_capacity(4096);
     for session in sessions {

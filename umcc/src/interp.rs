@@ -100,7 +100,8 @@ impl Interp {
                     }
                 }
                 if e != Expr::default() {
-                    let e = self.add_missing_stack_contexts(e);
+                    let mut e = self.add_missing_stack_contexts(e);
+                    e.deshadow();
                     w.write_fmt(format_args!(
                         "{} {}\n",
                         self.vms.resolve(&self.ctx.interner),
