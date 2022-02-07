@@ -95,7 +95,7 @@ pub(crate) SmallStepRule: SmallStepRule = {
 pub(crate) SmallStepAssertion:
     (ValueMultistack, Expr, SmallStepRule, ValueMultistack, Expr) = {
     <ivms: ValueMultistack> <ie: Expr>
-        LONG_RARROW <rule:SmallStepRule>
+        FIGURE_DASH <rule:SmallStepRule> LONG_RARROW
         <ovms: ValueMultistack> <oe: Expr> => {
         (ivms, ie, rule, ovms, oe)
     }
@@ -141,6 +141,7 @@ match {
     r"StkCtxDistr" => StkCtxDistr,
     r"StkCtx3Redund" => StkCtx3Redund,
     r"StkCtxEmpty" => StkCtxEmpty,
+    r"‒" => FIGURE_DASH,
     r"⟶" => LONG_RARROW,
     r"⇓" => DDARROW,
     r":trace" => COLON_TRACE,

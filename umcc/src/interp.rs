@@ -206,7 +206,7 @@ impl Interp {
                     };
                     // TODO: show function expansion as equality, not as small step?
                     w.write_fmt(format_args!(
-                        "⟶{} {} {}\n",
+                        "‒{}⟶ {} {}\n",
                         rule,
                         self.vms.resolve(&self.ctx.interner),
                         e.resolve(&self.ctx.interner)

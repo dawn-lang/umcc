@@ -61,25 +61,25 @@ fn test_define_term_with_shadowing() {
 fn test_small_step() {
     let cases = [
         // Intrinsics
-        "⟨s|V v⟩⟨sp|Vp vp⟩ (sp|(s|push)) ⟶IntrPush ⟨s|V v vp⟩⟨sp|Vp⟩",
-        "⟨s|V v⟩⟨sp|Vp vp⟩ (sp|(s|pop )) ⟶IntrPop  ⟨s|V⟩⟨sp|Vp vp v⟩",
-        "⟨s|V v⟩ (sp|(s|clone)) ⟶IntrClone ⟨s|V v v⟩",
-        "⟨s|V v⟩ (sp|(s|drop)) ⟶IntrDrop ⟨s|V⟩",
-        "⟨s|V v⟩ (sp|(s|quote)) ⟶IntrQuote ⟨s|V [v]⟩",
-        "⟨s|V [e1 e2] [e3 e4]⟩ (sp|(s|compose)) ⟶IntrCompose ⟨s|V [e1 e2 e3 e4]⟩",
-        "⟨s|V [e]⟩ (sp|(s|apply)) ⟶IntrApply ⟨s|V⟩ (sp|(s|e))",
-        "⟨s|V [e1 e2]⟩ (sp|(s|apply)) ⟶IntrApply ⟨s|V⟩ (sp|(s|e1 e2))",
+        "⟨s|V v⟩⟨sp|Vp vp⟩ (sp|(s|push)) ‒IntrPush⟶ ⟨s|V v vp⟩⟨sp|Vp⟩",
+        "⟨s|V v⟩⟨sp|Vp vp⟩ (sp|(s|pop )) ‒IntrPop⟶  ⟨s|V⟩⟨sp|Vp vp v⟩",
+        "⟨s|V v⟩ (sp|(s|clone)) ‒IntrClone⟶ ⟨s|V v v⟩",
+        "⟨s|V v⟩ (sp|(s|drop)) ‒IntrDrop⟶ ⟨s|V⟩",
+        "⟨s|V v⟩ (sp|(s|quote)) ‒IntrQuote⟶ ⟨s|V [v]⟩",
+        "⟨s|V [e1 e2] [e3 e4]⟩ (sp|(s|compose)) ‒IntrCompose⟶ ⟨s|V [e1 e2 e3 e4]⟩",
+        "⟨s|V [e]⟩ (sp|(s|apply)) ‒IntrApply⟶ ⟨s|V⟩ (sp|(s|e))",
+        "⟨s|V [e1 e2]⟩ (sp|(s|apply)) ‒IntrApply⟶ ⟨s|V⟩ (sp|(s|e1 e2))",
         // Literal Quote
-        "(sp|(s|[e])) ⟶LitQuote ⟨s|[e]⟩",
+        "(sp|(s|[e])) ‒LitQuote⟶ ⟨s|[e]⟩",
         // Distribution
-        "(s|a b c) ⟶StkCtxDistr (s|a) (s|b c)",
-        "(s1|(s2|a b c)) ⟶StkCtxDistr (s1|(s2|a) (s2|b c))",
-        "(s1|(s2|a) (s2|b c)) ⟶StkCtxDistr (s1|(s2|a)) (s1|(s2|b c))",
+        "(s|a b c) ‒StkCtxDistr⟶ (s|a) (s|b c)",
+        "(s1|(s2|a b c)) ‒StkCtxDistr⟶ (s1|(s2|a) (s2|b c))",
+        "(s1|(s2|a) (s2|b c)) ‒StkCtxDistr⟶ (s1|(s2|a)) (s1|(s2|b c))",
         // Redundant stack contexts
-        "(s1|(s2|(s3|e))) ⟶StkCtx3Redund (s2|(s3|e))",
+        "(s1|(s2|(s3|e))) ‒StkCtx3Redund⟶ (s2|(s3|e))",
         // Empty stack contexts
-        "(s1|(s2|)) ⟶StkCtxEmpty (s1|)",
-        "(s1|) ⟶StkCtxEmpty ",
+        "(s1|(s2|)) ‒StkCtxEmpty⟶ (s1|)",
+        "(s1|) ‒StkCtxEmpty⟶ ",
     ];
     for case in cases {
         let mut ctx = Context::default();
@@ -172,7 +172,7 @@ fn test_big_step() {
                 }
             };
             println!(
-                "⟶{} {} {}",
+                "‒{}⟶ {} {}",
                 rule,
                 vms1.resolve(&ctx.interner),
                 e1.resolve(&ctx.interner)
@@ -219,7 +219,7 @@ fn test_big_step_with_deshadowing() {
                 }
             };
             println!(
-                "⟶{:?} {} {}",
+                "‒{:?}⟶ {} {}",
                 rule,
                 vms1.resolve(&ctx.interner),
                 e1.resolve(&ctx.interner)
@@ -319,7 +319,7 @@ fn test_big_step_with_compression() {
                 }
             };
             println!(
-                "⟶{:?} {} {}",
+                "‒{:?}⟶ {} {}",
                 rule,
                 vms1.resolve(&ctx.interner),
                 e1.resolve(&ctx.interner)

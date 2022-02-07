@@ -277,7 +277,7 @@ fn test_parse_small_step_assertion() {
     let interner = &mut Interner::default();
     assert_eq!(
         SmallStepAssertionParser::new()
-            .parse(interner, "⟨s1|v1⟩ e1 ⟶IntrPush ⟨s2|v2⟩ e2")
+            .parse(interner, "⟨s1|v1⟩ e1 ‒IntrPush⟶ ⟨s2|v2⟩ e2")
             .unwrap(),
         (
             ValueMultistack(crate::map! {
