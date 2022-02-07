@@ -14,11 +14,17 @@ fn test_expr_deshadow() {
     let mut ctx = Context::default();
     let s_sym = StackSymbol(ctx.interner.get_or_intern_static("s"));
     let s_0 = StackId(s_sym, 0);
-    let e = Expr::StackContext(s_0, Box::new(Expr::StackContext(s_0, Box::new(Expr::Compose(vec![])))));
+    let e = Expr::StackContext(
+        s_0,
+        Box::new(Expr::StackContext(s_0, Box::new(Expr::Compose(vec![])))),
+    );
     let mut e_deshadowed = e.clone();
     e_deshadowed.deshadow();
     let s_1 = StackId(s_sym, 1);
-    let e_expected = Expr::StackContext(s_0, Box::new(Expr::StackContext(s_1, Box::new(Expr::Compose(vec![])))));
+    let e_expected = Expr::StackContext(
+        s_0,
+        Box::new(Expr::StackContext(s_1, Box::new(Expr::Compose(vec![])))),
+    );
     assert_eq!(e_deshadowed, e_expected);
 }
 
@@ -65,7 +71,9 @@ fn test_define_term_with_shadowing() {
     let term_def1 = TermDefParser::new()
         .parse(&mut ctx.interner, "{term foo = (s|(s|e))}")
         .unwrap();
-    let e = ExprParser::new().parse(&mut ctx.interner, "(s|(s|e))").unwrap();
+    let e = ExprParser::new()
+        .parse(&mut ctx.interner, "(s|(s|e))")
+        .unwrap();
     let mut e_deshadowed = e.clone();
     e_deshadowed.deshadow();
     assert_ne!(e, e_deshadowed);
