@@ -72,7 +72,7 @@ impl Expr {
         match self {
             Expr::Intrinsic(_) => {}
             Expr::Call(_) => {}
-            Expr::Quote(e) => e._deshadow(max_stack_symbol_index),
+            Expr::Quote(e) => e._deshadow(&mut Map::default()),
             Expr::Compose(es) => {
                 for e in es {
                     e._deshadow(max_stack_symbol_index);
