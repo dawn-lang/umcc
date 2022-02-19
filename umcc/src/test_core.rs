@@ -91,9 +91,16 @@ fn test_small_step() {
         "⟨s|V v⟩ (sp|(s|clone)) ‒IntrClone⟶ ⟨s|V v v⟩",
         "⟨s|V v⟩ (sp|(s|drop)) ‒IntrDrop⟶ ⟨s|V⟩",
         "⟨s|V v⟩ (sp|(s|quote)) ‒IntrQuote⟶ ⟨s|V [v]⟩",
+        "⟨s|V [] []⟩ (sp|(s|compose)) ‒IntrCompose⟶ ⟨s|V []⟩",
+        "⟨s|V [e1] [e2]⟩ (sp|(s|compose)) ‒IntrCompose⟶ ⟨s|V [e1 e2]⟩",
+        "⟨s|V [e1] [e2 e3]⟩ (sp|(s|compose)) ‒IntrCompose⟶ ⟨s|V [e1 e2 e3]⟩",
+        "⟨s|V [e1 e2] [e3]⟩ (sp|(s|compose)) ‒IntrCompose⟶ ⟨s|V [e1 e2 e3]⟩",
         "⟨s|V [e1 e2] [e3 e4]⟩ (sp|(s|compose)) ‒IntrCompose⟶ ⟨s|V [e1 e2 e3 e4]⟩",
+        "⟨s|V []⟩ (sp|(s|apply)) ‒IntrApply⟶ ⟨s|V⟩ (sp|(s|))",
         "⟨s|V [e]⟩ (sp|(s|apply)) ‒IntrApply⟶ ⟨s|V⟩ (sp|(s|e))",
         "⟨s|V [e1 e2]⟩ (sp|(s|apply)) ‒IntrApply⟶ ⟨s|V⟩ (sp|(s|e1 e2))",
+        // Literal Call
+        "(sp|(s|quote0)) ‒LitCall⟶ (sp|(s|[]))",
         // Literal Quote
         "(sp|(s|[e])) ‒LitQuote⟶ ⟨s|[e]⟩",
         // Distribution
@@ -108,6 +115,12 @@ fn test_small_step() {
     ];
     for case in cases {
         let mut ctx = Context::default();
+        for term_def_src in TERM_DEF_SRCS.iter() {
+            let term_def = TermDefParser::new()
+                .parse(&mut ctx.interner, term_def_src)
+                .unwrap();
+            assert_eq!(ctx.define_term(term_def), None);
+        }
         let (mut vms1, mut e1, rule, vms2, e2) = SmallStepAssertionParser::new()
             .parse(&mut ctx.interner, case)
             .unwrap();
@@ -135,41 +148,46 @@ fn test_big_step() {
     let cases = [
         "⟨s|v1 v2⟩ (sp|(s|swap)) ⇓ ⟨s|v2 v1⟩",
         "⟨s|v1 v2⟩ (sp|(s|swap swap)) ⇓ ⟨s|v1 v2⟩",
-        "⟨s|v1 v2⟩ (sp|(s|false apply)) ⇓ ⟨s|v1⟩",
-        "⟨s|v1 v2⟩ (sp|(s|true apply)) ⇓ ⟨s|v2⟩",
-        "⟨s|false false⟩ (sp|(s|or)) ⇓ ⟨s|false⟩",
-        "⟨s|false true⟩ (sp|(s|or)) ⇓ ⟨s|true⟩",
-        "⟨s|true false⟩ (sp|(s|or)) ⇓ ⟨s|true⟩",
-        "⟨s|true true⟩ (sp|(s|or)) ⇓ ⟨s|true⟩",
+        "⟨s2|v1 v2⟩ (s1|(s2|swap)) ⇓ ⟨s2|v2 v1⟩",
+        "⟨s2|v1 v2 [(s1|push)(s2|push)(s1|pop)(s2|pop)]⟩ (s1|(s2|apply)) ⇓ ⟨s2|v2 v1⟩",
+        "⟨s|[v1] [v2]⟩ (sp|(s|compose2)) ⇓ ⟨s|[v1 v2]⟩",
+        "⟨s|[v1] [v2] [v3]⟩ (sp|(s|compose3)) ⇓ ⟨s|[v1 v2 v3]⟩",
+        "⟨s|⟩ (sp|(s|quote0)) ⇓ ⟨s|[]⟩",
+        "⟨s|v1⟩ (sp|(s|quote1)) ⇓ ⟨s|[v1]⟩",
         "⟨s|v1 v2⟩ (sp|(s|quote2)) ⇓ ⟨s|[v1 v2]⟩",
         "⟨s|v1 v2 v3⟩ (sp|(s|quote3)) ⇓ ⟨s|[v1 v2 v3]⟩",
-        "⟨s|v1 v2 v3⟩ (sp|(s|rotate3)) ⇓ ⟨s|v2 v3 v1⟩",
-        "⟨s|v1 v2 v3 v4⟩ (sp|(s|rotate4)) ⇓ ⟨s|v2 v3 v4 v1⟩",
-        "⟨s|[e]⟩ (sp|(s|n0 apply)) ⇓ ",
-        "⟨s|[e]⟩ (sp|(s|n1 apply)) ⇓ (sp|(s|e))",
-        "⟨s|[e]⟩ (sp|(s|n2 apply)) ⇓ (sp|(s|e e))",
-        "⟨s|[e]⟩ (sp|(s|n3 apply)) ⇓ (sp|(s|e e e))",
-        "⟨s|[e]⟩ (sp|(s|n4 apply)) ⇓ (sp|(s|e e e e))",
-        "⟨s|[e] n0⟩ (sp|(s|succ apply)) ⇓ (sp|(s|e))",
-        "⟨s|[e] n0⟩ (sp|(s|succ succ apply)) ⇓ (sp|(s|e e))",
-        "⟨s|[e] n0⟩ (sp|(s|succ succ succ apply)) ⇓ (sp|(s|e e e))",
-        "⟨s|[e] n1⟩ (sp|(s|succ apply)) ⇓ (sp|(s|e e))",
-        "⟨s|[e] n2⟩ (sp|(s|succ apply)) ⇓ (sp|(s|e e e))",
-        "⟨s|[e] n0 n0⟩ (sp|(s|add apply)) ⇓ ",
-        "⟨s|[e] n0 n1⟩ (sp|(s|add apply)) ⇓ (sp|(s|e))",
-        "⟨s|[e] n1 n0⟩ (sp|(s|add apply)) ⇓ (sp|(s|e))",
-        "⟨s|[e] n1 n1⟩ (sp|(s|add apply)) ⇓ (sp|(s|e e))",
-        "⟨s|[e] n1 n2⟩ (sp|(s|add apply)) ⇓ (sp|(s|e e e))",
-        "⟨s|[e] n2 n1⟩ (sp|(s|add apply)) ⇓ (sp|(s|e e e))",
-        "⟨s|[e] n2 n2⟩ (sp|(s|add apply)) ⇓ (sp|(s|e e e e))",
-        "⟨s|[e] n0 n0⟩ (sp|(s|mul apply)) ⇓ ",
-        "⟨s|[e] n0 n1⟩ (sp|(s|mul apply)) ⇓ ",
-        "⟨s|[e] n1 n0⟩ (sp|(s|mul apply)) ⇓ ",
-        "⟨s|[e] n1 n1⟩ (sp|(s|mul apply)) ⇓ (sp|(s|e))",
-        "⟨s|[e] n1 n2⟩ (sp|(s|mul apply)) ⇓ (sp|(s|e e))",
-        "⟨s|[e] n2 n1⟩ (sp|(s|mul apply)) ⇓ (sp|(s|e e))",
-        "⟨s|[e] n2 n2⟩ (sp|(s|mul apply)) ⇓ (sp|(s|e e e e))",
-        "⟨s|[clone apply]⟩ (sp|(s|clone apply)) ⇓ ⟨s|[clone apply]⟩ (sp|(s|clone apply))",
+        "⟨s|⟩ (sp|(s|False)) ⇓ ⟨s|[_False]⟩",
+        "⟨s|⟩ (sp|(s|True)) ⇓ ⟨s|[_True]⟩",
+        "⟨s|⟩ (sp|(s|False not)) ⇓ ⟨s|[_True]⟩",
+        "⟨s|⟩ (sp|(s|True not)) ⇓ ⟨s|[_False]⟩",
+        "⟨s|⟩ (sp|(s|False False or)) ⇓ ⟨s|[_False]⟩",
+        "⟨s|⟩ (sp|(s|False True or)) ⇓ ⟨s|[_True]⟩",
+        "⟨s|⟩ (sp|(s|True False or)) ⇓ ⟨s|[_True]⟩",
+        "⟨s|⟩ (sp|(s|True True or)) ⇓ ⟨s|[_True]⟩",
+        "⟨s|⟩ (sp|(s|False False and)) ⇓ ⟨s|[_False]⟩",
+        "⟨s|⟩ (sp|(s|False True and)) ⇓ ⟨s|[_False]⟩",
+        "⟨s|⟩ (sp|(s|True False and)) ⇓ ⟨s|[_False]⟩",
+        "⟨s|⟩ (sp|(s|True True and)) ⇓ ⟨s|[_True]⟩",
+        "⟨s|⟩ (sp|(s|Z)) ⇓ ⟨s|[_Z]⟩",
+        "⟨s|⟩ (sp|(s|Z S)) ⇓ ⟨s|[[_Z] _S]⟩",
+        "⟨s|⟩ (sp|(s|Z S S)) ⇓ ⟨s|[[[_Z] _S] _S]⟩",
+        "⟨s|⟩ (sp|(s|Z S S S)) ⇓ ⟨s|[[[[_Z] _S] _S] _S]⟩",
+        "⟨s|⟩ (sp|(s|Z succ)) ⇓ ⟨s|[[_Z] _S]⟩",
+        "⟨s|⟩ (sp|(s|Z S succ)) ⇓ ⟨s|[[[_Z] _S] _S]⟩",
+        "⟨s|⟩ (sp|(s|Z Z add)) ⇓ ⟨s|[_Z]⟩",
+        "⟨s|⟩ (sp|(s|Z Z S add)) ⇓ ⟨s|[[_Z] _S]⟩",
+        "⟨s|⟩ (sp|(s|Z S Z add)) ⇓ ⟨s|[[_Z] _S]⟩",
+        "⟨s|⟩ (sp|(s|Z S Z S add)) ⇓ ⟨s|[[[_Z] _S] _S]⟩",
+        "⟨s|⟩ (sp|(s|Z S Z S S add)) ⇓ ⟨s|[[[[_Z] _S] _S] _S]⟩",
+        "⟨s|⟩ (sp|(s|Z S S Z S add)) ⇓ ⟨s|[[[[_Z] _S] _S] _S]⟩",
+        "⟨s|⟩ (sp|(s|Z S S Z S S add)) ⇓ ⟨s|[[[[[_Z] _S] _S] _S] _S]⟩",
+        "⟨s|⟩ (sp|(s|Z Z mul)) ⇓ ⟨s|[_Z]⟩",
+        "⟨s|⟩ (sp|(s|Z Z S mul)) ⇓ ⟨s|[_Z]⟩",
+        "⟨s|⟩ (sp|(s|Z S Z mul)) ⇓ ⟨s|[_Z]⟩",
+        "⟨s|⟩ (sp|(s|Z S Z S mul)) ⇓ ⟨s|[[_Z] _S]⟩",
+        "⟨s|⟩ (sp|(s|Z S Z S S mul)) ⇓ ⟨s|[[[_Z] _S] _S]⟩",
+        "⟨s|⟩ (sp|(s|Z S S Z S mul)) ⇓ ⟨s|[[[_Z] _S] _S]⟩",
+        "⟨s|⟩ (sp|(s|Z S S Z S S mul)) ⇓ ⟨s|[[[[[_Z] _S] _S] _S] _S]⟩",
     ];
     let mut ctx = Context::default();
     for term_def_src in TERM_DEF_SRCS.iter() {
@@ -202,160 +220,6 @@ fn test_big_step() {
                 vms1.resolve(&ctx.interner),
                 e1.resolve(&ctx.interner)
             );
-            if vms1 == vms2 && e1 == e2 {
-                break 'eval;
-            } else if step == MAX_SMALL_STEPS {
-                panic!("Reached MAX_SMALL_STEPS on {}", case);
-            }
-        }
-    }
-}
-
-#[test]
-fn test_big_step_with_deshadowing() {
-    const MAX_SMALL_STEPS: usize = 2000;
-    let cases = [
-        "⟨s2|v1 v2⟩ (s1|(s2|swap)) ⇓ ⟨s2|v2 v1⟩",
-        "⟨s2|v1 v2 [(s1|push)(s2|push)(s1|pop)(s2|pop)]⟩ (s1|(s2|apply)) ⇓ ⟨s2|v2 v1⟩",
-    ];
-    let mut ctx = Context::default();
-    for term_def_src in TERM_DEF_SRCS.iter() {
-        let term_def = TermDefParser::new()
-            .parse(&mut ctx.interner, term_def_src)
-            .unwrap();
-        assert_eq!(ctx.define_term(term_def), None);
-    }
-    for case in cases {
-        println!("\nCase: {}", case);
-        let (mut vms1, mut e1, vms2, e2) = BigStepAssertionParser::new()
-            .parse(&mut ctx.interner, case)
-            .unwrap();
-        println!(
-            "{} {}",
-            vms1.resolve(&ctx.interner),
-            e1.resolve(&ctx.interner)
-        );
-        'eval: for step in 1..=MAX_SMALL_STEPS {
-            let rule = match ctx.small_step(&mut vms1, &mut e1) {
-                Ok(rule) => rule,
-                Err(err) => {
-                    println!("Error: {:?}", err.resolve(&ctx.interner));
-                    panic!("Failed on {}", case);
-                }
-            };
-            println!(
-                "‒{:?}⟶ {} {}",
-                rule,
-                vms1.resolve(&ctx.interner),
-                e1.resolve(&ctx.interner)
-            );
-            if vms1 == vms2 && e1 == e2 {
-                break 'eval;
-            } else if step == MAX_SMALL_STEPS {
-                panic!("Reached MAX_SMALL_STEPS on {}", case);
-            }
-        }
-    }
-}
-
-#[test]
-fn test_compress() {
-    let cases = [
-        ("⟨s|[swap drop]⟩", "⟨s|true⟩", true),
-        ("⟨s|[drop]⟩", "⟨s|n0⟩", true),
-        ("⟨s|[n0 _succ]⟩", "⟨s|n1⟩", true),
-        ("⟨s|[n1 _succ]⟩", "⟨s|n2⟩", true),
-        ("⟨s|[n2 _succ]⟩", "⟨s|n3⟩", true),
-        ("⟨s|[n3 _succ]⟩", "⟨s|n4⟩", true),
-    ];
-    for (input_src, expected_src, expected_result) in cases {
-        let mut ctx = Context::default();
-        for term_def_src in TERM_DEF_SRCS.iter() {
-            let term_def = TermDefParser::new()
-                .parse(&mut ctx.interner, term_def_src)
-                .unwrap();
-            assert_eq!(ctx.define_term(term_def), None);
-        }
-        let mut input = ValueMultistackParser::new()
-            .parse(&mut ctx.interner, input_src)
-            .unwrap();
-        let expected = ValueMultistackParser::new()
-            .parse(&mut ctx.interner, expected_src)
-            .unwrap();
-        let result = ctx.compress(&mut input);
-        assert_eq!(
-            (input.resolve(&ctx.interner), result),
-            (expected.resolve(&ctx.interner), expected_result),
-            "Failed on ({}, {})",
-            input_src,
-            expected_src
-        );
-    }
-}
-
-#[test]
-fn test_big_step_with_compression() {
-    const MAX_SMALL_STEPS: usize = 1000;
-    let cases = [
-        "⟨s|n0⟩ (sp|(s|succ)) ⇓ ⟨s|n1⟩",
-        "⟨s|n1⟩ (sp|(s|succ)) ⇓ ⟨s|n2⟩",
-        "⟨s|n2⟩ (sp|(s|succ)) ⇓ ⟨s|n3⟩",
-        "⟨s|n3⟩ (sp|(s|succ)) ⇓ ⟨s|n4⟩",
-        "⟨s|n0 n0⟩ (sp|(s|add)) ⇓ ⟨s|n0⟩",
-        "⟨s|n0 n1⟩ (sp|(s|add)) ⇓ ⟨s|n1⟩",
-        "⟨s|n1 n0⟩ (sp|(s|add)) ⇓ ⟨s|n1⟩",
-        "⟨s|n1 n1⟩ (sp|(s|add)) ⇓ ⟨s|n2⟩",
-        "⟨s|n1 n2⟩ (sp|(s|add)) ⇓ ⟨s|n3⟩",
-        "⟨s|n2 n1⟩ (sp|(s|add)) ⇓ ⟨s|n3⟩",
-        "⟨s|n2 n2⟩ (sp|(s|add)) ⇓ ⟨s|n4⟩",
-        "⟨s|n0 n0⟩ (sp|(s|mul)) ⇓ ⟨s|n0⟩",
-        "⟨s|n0 n1⟩ (sp|(s|mul)) ⇓ ⟨s|n0⟩",
-        "⟨s|n1 n0⟩ (sp|(s|mul)) ⇓ ⟨s|n0⟩",
-        "⟨s|n1 n1⟩ (sp|(s|mul)) ⇓ ⟨s|n1⟩",
-        "⟨s|n1 n2⟩ (sp|(s|mul)) ⇓ ⟨s|n2⟩",
-        "⟨s|n2 n1⟩ (sp|(s|mul)) ⇓ ⟨s|n2⟩",
-        "⟨s|n1 n3⟩ (sp|(s|mul)) ⇓ ⟨s|n3⟩",
-        "⟨s|n3 n1⟩ (sp|(s|mul)) ⇓ ⟨s|n3⟩",
-        "⟨s|n2 n2⟩ (sp|(s|mul)) ⇓ ⟨s|n4⟩",
-    ];
-    let mut ctx = Context::default();
-    for term_def_src in TERM_DEF_SRCS.iter() {
-        let term_def = TermDefParser::new()
-            .parse(&mut ctx.interner, term_def_src)
-            .unwrap();
-        assert_eq!(ctx.define_term(term_def), None);
-    }
-    for case in cases {
-        println!("\nCase: {}", case);
-        let (mut vms1, mut e1, vms2, e2) = BigStepAssertionParser::new()
-            .parse(&mut ctx.interner, case)
-            .unwrap();
-        println!(
-            "{} {}",
-            vms1.resolve(&ctx.interner),
-            e1.resolve(&ctx.interner)
-        );
-        'eval: for step in 1..=MAX_SMALL_STEPS {
-            let rule = match ctx.small_step(&mut vms1, &mut e1) {
-                Ok(rule) => rule,
-                Err(err) => {
-                    println!("Error: {:?}", err.resolve(&ctx.interner));
-                    panic!("Failed on {}", case);
-                }
-            };
-            println!(
-                "‒{:?}⟶ {} {}",
-                rule,
-                vms1.resolve(&ctx.interner),
-                e1.resolve(&ctx.interner)
-            );
-            if ctx.compress(&mut vms1) {
-                println!(
-                    "= {} {}",
-                    vms1.resolve(&ctx.interner),
-                    e1.resolve(&ctx.interner)
-                );
-            }
             if vms1 == vms2 && e1 == e2 {
                 break 'eval;
             } else if step == MAX_SMALL_STEPS {

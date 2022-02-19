@@ -297,7 +297,6 @@ impl fmt::Display for SmallStepRule {
             SmallStepRule::IntrQuote => "IntrQuote".fmt(f),
             SmallStepRule::IntrCompose => "IntrCompose".fmt(f),
             SmallStepRule::IntrApply => "IntrApply".fmt(f),
-            SmallStepRule::LitCallQuote => "LitCallQuote".fmt(f),
             SmallStepRule::LitCall => "LitCall".fmt(f),
             SmallStepRule::LitQuote => "LitQuote".fmt(f),
             SmallStepRule::StkCtxDistr => "StkCtxDistr".fmt(f),

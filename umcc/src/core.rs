@@ -110,6 +110,15 @@ pub struct ValueStack(pub(crate) Vec<Value>);
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct ValueMultistack(pub(crate) Map<StackId, ValueStack>);
 
+impl From<Value> for Expr {
+    fn from(v: Value) -> Expr {
+        match v {
+            Value::Call(sym) => Expr::Call(sym),
+            Value::Quote(e) => Expr::Quote(e),
+        }
+    }
+}
+
 impl ValueMultistack {
     fn remove_empty_stacks(&mut self) {
         self.0.retain(|_s, vs| !vs.0.is_empty());
@@ -131,7 +140,6 @@ pub enum SmallStepRule {
     IntrQuote,
     IntrCompose,
     IntrApply,
-    LitCallQuote,
     LitCall,
     LitQuote,
     StkCtxDistr,
@@ -343,10 +351,7 @@ impl Context {
                                             })
                                         } else {
                                             let v = vs.0.pop().unwrap();
-                                            let qe = match v {
-                                                Value::Call(sym) => Expr::Call(sym),
-                                                Value::Quote(e) => Expr::Quote(e),
-                                            };
+                                            let qe = Expr::from(v);
                                             vs.0.push(Value::Quote(Box::new(qe)));
                                             *e = Expr::default();
                                             Ok(SmallStepRule::IntrQuote)
@@ -423,19 +428,9 @@ impl Context {
                             },
                             Expr::Call(sym) => {
                                 if let Some(new_e) = self.terms.get(sym) {
-                                    let vs = vms.0.entry(*sii).or_default();
-                                    match new_e {
-                                        Expr::Quote(_) => {
-                                            vs.0.push(Value::Call(*sym));
-                                            *e = Expr::default();
-                                            Ok(SmallStepRule::LitCallQuote)
-                                        }
-                                        _ => {
-                                            *eii = Box::new(new_e.clone());
-                                            e.deshadow();
-                                            Ok(SmallStepRule::LitCall)
-                                        }
-                                    }
+                                    *eii = Box::new(new_e.clone());
+                                    e.deshadow();
+                                    Ok(SmallStepRule::LitCall)
                                 } else {
                                     Err(EvalError::UndefinedTerm(*sym))
                                 }
@@ -477,25 +472,6 @@ impl Context {
             }
             _ => Err(EvalError::Missing2StackContexts),
         }
-    }
-
-    pub fn compress(&mut self, vms: &mut ValueMultistack) -> bool {
-        let mut compressed = false;
-        for (_s, vs) in vms.0.iter_mut() {
-            for v in vs.0.iter_mut() {
-                match v {
-                    Value::Call(_) => {}
-                    Value::Quote(e) => {
-                        // TODO: we shouldn't have to clone this expr in order to hash it
-                        if let Some(sym) = self.exprs.get(&Expr::Quote((*e).clone())) {
-                            *v = Value::Call(*sym);
-                            compressed = true;
-                        }
-                    }
-                }
-            }
-        }
-        compressed
     }
 }
 

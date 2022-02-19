@@ -182,8 +182,6 @@ impl Interp {
                         // TODO: better error messages
                         w.write_fmt(format_args!("{}\n", err.resolve(&self.ctx.interner)))?;
                         return w.flush();
-                    } else {
-                        self.ctx.compress(&mut self.vms);
                     }
                     self.command = Some(InterpCommand::Eval(vec![], e));
                 } else {
@@ -211,13 +209,6 @@ impl Interp {
                         self.vms.resolve(&self.ctx.interner),
                         e.resolve(&self.ctx.interner)
                     ))?;
-                    if self.ctx.compress(&mut self.vms) {
-                        w.write_fmt(format_args!(
-                            "= {}    {}\n",
-                            self.vms.resolve(&self.ctx.interner),
-                            e.resolve(&self.ctx.interner)
-                        ))?;
-                    }
                     self.command = Some(InterpCommand::Trace(e));
                 }
             }

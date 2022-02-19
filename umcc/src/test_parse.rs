@@ -256,7 +256,6 @@ fn test_parse_small_step_rule() {
         ("IntrQuote", SmallStepRule::IntrQuote),
         ("IntrCompose", SmallStepRule::IntrCompose),
         ("IntrApply", SmallStepRule::IntrApply),
-        ("LitCallQuote", SmallStepRule::LitCallQuote),
         ("LitCall", SmallStepRule::LitCall),
         ("LitQuote", SmallStepRule::LitQuote),
         ("StkCtxDistr", SmallStepRule::StkCtxDistr),
