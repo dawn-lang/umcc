@@ -103,7 +103,7 @@ impl Interp {
                     let mut e = self.add_missing_stack_contexts(e);
                     e.deshadow();
                     w.write_fmt(format_args!(
-                        "{} {}\n",
+                        "{}    {}\n",
                         self.vms.resolve(&self.ctx.interner),
                         e.resolve(&self.ctx.interner)
                     ))?;
@@ -114,7 +114,7 @@ impl Interp {
                 if e != Expr::default() {
                     let e = self.add_missing_stack_contexts(e);
                     w.write_fmt(format_args!(
-                        "{} {}\n",
+                        "{}    {}\n",
                         self.vms.resolve(&self.ctx.interner),
                         e.resolve(&self.ctx.interner)
                     ))?;
@@ -175,7 +175,7 @@ impl Interp {
                 if e != Expr::default() {
                     if let Err(err) = self.ctx.small_step(&mut self.vms, &mut e) {
                         w.write_fmt(format_args!(
-                            "⇓ {} {}\n",
+                            "⇓ {}    {}\n",
                             self.vms.resolve(&self.ctx.interner),
                             e.resolve(&self.ctx.interner)
                         ))?;
@@ -188,7 +188,7 @@ impl Interp {
                     self.command = Some(InterpCommand::Eval(vec![], e));
                 } else {
                     w.write_fmt(format_args!(
-                        "⇓ {} {}\n",
+                        "⇓ {}    {}\n",
                         self.vms.resolve(&self.ctx.interner),
                         e.resolve(&self.ctx.interner)
                     ))?;
@@ -206,14 +206,14 @@ impl Interp {
                     };
                     // TODO: show function expansion as equality, not as small step?
                     w.write_fmt(format_args!(
-                        "‒{}⟶ {} {}\n",
+                        "‒{}⟶ {}    {}\n",
                         rule,
                         self.vms.resolve(&self.ctx.interner),
                         e.resolve(&self.ctx.interner)
                     ))?;
                     if self.ctx.compress(&mut self.vms) {
                         w.write_fmt(format_args!(
-                            "= {} {}\n",
+                            "= {}    {}\n",
                             self.vms.resolve(&self.ctx.interner),
                             e.resolve(&self.ctx.interner)
                         ))?;
