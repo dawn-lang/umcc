@@ -155,7 +155,6 @@ impl Interp {
             }
             Ok(InterpCommand::Clear) => {
                 self.ctx.terms.clear();
-                self.ctx.exprs.clear();
                 w.write_fmt(format_args!("Definitions cleared.\n"))?;
             }
             Ok(InterpCommand::Reset) => {

@@ -128,7 +128,6 @@ impl ValueMultistack {
 pub struct Context {
     pub(crate) interner: Interner,
     pub(crate) terms: Map<TermSymbol, Expr>,
-    pub(crate) exprs: Map<Expr, TermSymbol>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -162,7 +161,6 @@ impl Default for Context {
         Context {
             interner,
             terms: Map::default(),
-            exprs: Map::default(),
         }
     }
 }
@@ -486,8 +484,7 @@ impl Context {
     pub fn define_term(&mut self, mut fn_def: TermDef) -> Option<TermDef> {
         fn_def.1.deshadow();
         let result = self.terms.remove(&fn_def.0).map(|e| TermDef(fn_def.0, e));
-        self.terms.insert(fn_def.0, fn_def.1.clone());
-        self.exprs.insert(fn_def.1, fn_def.0);
+        self.terms.insert(fn_def.0, fn_def.1);
         result
     }
 }
